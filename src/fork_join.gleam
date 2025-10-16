@@ -10,7 +10,7 @@ fn compose(fun1: fn(b) -> c, fun2: fn(a) -> b) -> fn(a) -> c {
 }
 
 pub type Token {
-  Comment
+  NOP
   Counter(String, Int)
   Label(String, Token)
   Fork(String)
@@ -18,60 +18,83 @@ pub type Token {
   Join(String, String)
   Literal(String)
   Quit
-  Error(String)
+  LexError(String)
 }
 
-fn lex_counter(line: String) {
+fn lex_counter(line_num: Int, line: String) {
   case string.split(line, "=") {
     [name, value_str] ->
       case int.parse(value_str) {
         Ok(value) -> Counter(name, value)
         _ ->
-          Error(
-            "Tipo incorrecto, solo se le pueden asignar números enteros a un contador",
+          LexError(
+            "Tipo incorrecto en linea"
+            <> int.to_string(line_num)
+            <> ", un contador solo puede guardar números enteros. ('"
+            <> line
+            <> "')",
           )
       }
     _ ->
-      Error(
-        "Error de sintaxis, esperaba la asignación de un contador pero obtuve '"
+      LexError(
+        "Error de sintaxis en linea"
+        <> int.to_string(line_num)
+        <> ", esperaba la asignación de un contador pero obtuve '"
         <> line
         <> "'",
       )
   }
 }
 
-fn lex_line(line: List(String)) {
+fn lex_line(line_num: Int, line: List(String)) {
   case line {
     [] | ["QUIT"] -> Quit
     ["FORK", label] -> Fork(label)
     ["GOTO", label] -> Goto(label)
     ["JOIN", counter, label] -> Join(counter, label)
-    ["--" <> _, ..] -> Comment
     [str] ->
       case string.contains(str, "=") {
-        True -> lex_counter(str)
-        False -> Literal(str)
+        True -> lex_counter(line_num, str)
+        False ->
+          case string.ends_with(str, ":") {
+            True -> Label(string.drop_end(str, 1), NOP)
+            False -> Literal(str)
+          }
       }
     [label, ..rest] ->
       case string.contains(label, ":") {
-        True -> Label(string.drop_end(label, 1), lex_line(rest))
+        True -> Label(string.drop_end(label, 1), lex_line(line_num, rest))
         False ->
-          Error(
-            "Error de sintaxis, no esperaba '" <> string.join(line, " ") <> "'",
+          LexError(
+            "Error de sintaxis en linea "
+            <> int.to_string(line_num)
+            <> ", no esperaba '"
+            <> string.join(line, " ")
+            <> "'",
           )
       }
   }
 }
 
 fn lex(source: String) {
-  string.uppercase(source)
-  |> string.split(on: "\n")
-  |> list.map(string.trim)
-  |> list.filter(compose(bool.negate, string.is_empty))
-  |> list.map(fn(s) {
+  let s =
+    string.uppercase(source)
+    |> string.split(on: "\n")
+    |> list.filter_map(fn(s) {
+      let ts = string.trim(s)
+      case ts {
+        "--" <> _ -> Error(Nil)
+        _ ->
+          case string.is_empty(ts) {
+            True -> Error(Nil)
+            False -> Ok(ts)
+          }
+      }
+    })
+  list.map2(list.range(1, list.length(s)), s, fn(i, s) {
     string.split(s, on: " ")
     |> list.filter(compose(bool.negate, string.is_empty))
-    |> lex_line
+    |> lex_line(i, _)
   })
 }
 
@@ -81,7 +104,7 @@ fn parse(parent: Option(String), tokens: List(Token), source: List(Token)) {
     [] -> dict.new()
     [t, ..ts] ->
       case t {
-        Comment | Counter(_, _) -> parse(parent, ts, source)
+        NOP | Counter(_, _) -> parse(parent, ts, source)
         Quit -> dict.new()
         Label(_, lt) -> parse(parent, list.append([lt], ts), source)
         Literal(l) -> {
@@ -141,7 +164,7 @@ fn parse(parent: Option(String), tokens: List(Token), source: List(Token)) {
             ),
             merge,
           )
-        Error(e) -> panic as e
+        LexError(e) -> panic as e
       }
   }
 }
