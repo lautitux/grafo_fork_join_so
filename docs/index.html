@@ -3,44 +3,87 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
-    />
     <title>Grafos Fork y Join</title>
   </head>
+  <style>
+    html,
+    body {
+      height: 99vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+      display: grid;
+      height: 100%;
+      grid-template-columns: 100%;
+      grid-template-rows: 10% 5% 80% 5%;
+      grid-template-areas:
+        "header"
+        "tools"
+        "content"
+        "footer";
+    }
+
+    select, button {
+      height: 2.5em;
+    }
+
+    main {
+      display: grid;
+      height: 100%;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 768px) {
+      html, body {
+        height: 100%;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #code-editor {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 1px solid gray;
+    }
+
+    #grafo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid gray;
+    }
+  </style>
   <body>
-    <main class="container">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="container">
+      <header style="grid-area: header">
         <h1>Fork y Join</h1>
-        <a href="#" class="contrast">GitHub</a>
-      </div>
-      <div class="grid">
-        <div>
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              width: 30vw;
-              align-items: center;
-            "
-          >
-            <div style="display: inline-block">
-              <label for="select-ejemplo">Cargar ejemplo:</label>
-              <select name="select-ejemplo" id="select-ejemplo">
-                <option value="none">Ninguno</option>
-              </select>
-            </div>
-            <button id="render" style="height: 3.5em">Dibujar</button>
-          </div>
-          <div
-            id="code-editor"
-            style="width: 30vw; height: 60vh; border: solid 1px gray"
-          ></div>
-        </div>
-        <div id="grafo" style="display: flex; justify-content: center"></div>
-      </div>
-    </main>
+        <a href="https://github.com/lautitux/grafo_fork_join_so" class="contrast">GitHub</a>
+      </header>
+      <section class="tools" style="grid-area: tools">  
+        <label for="select-ejemplo">Cargar ejemplo:</label>
+        <select name="select-ejemplo" id="select-ejemplo">
+          <option value="none">Ninguno</option>
+        </select>
+        <button id="render">Dibujar Grafo</button>
+      </section>
+      <main style="grid-area: content">
+        <div id="code-editor"></div>
+        <div id="grafo"></div>
+      </main>
+      <footer style="grid-area: footer"></footer>
+    </div>
   </body>
   <script type="module">
     import ace from "https://cdn.jsdelivr.net/npm/ace-builds@1.43.3/+esm";
