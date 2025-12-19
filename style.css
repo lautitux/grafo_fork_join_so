@@ -1,23 +1,113 @@
-
 .tk {
-    display: inline-block;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: medium;
-    padding: .1em .5em;
-    margin: .2em;
-    border-radius: .3em;
-    border: 1px solid black;
+  display: inline-block;
+  font-family: "Courier New", Courier, monospace;
+  font-size: medium;
+  padding: 0.1em 0.5em;
+  margin: 0.2em;
+  border-radius: 0.3em;
+  border: 1px solid black;
 }
 
 .error {
-    display: block;
-    font-family: 'Courier New', Courier, monospace;
-    margin-top: 1em;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  margin-top: 1em;
 
-    .line {
-        margin-right: 1em;
-        background-color: #FFB4B4;
-        padding: .2em;
-        border-radius: .3em;
-    }
+  .line {
+    margin-right: 1em;
+    background-color: #ffb4b4;
+    padding: 0.2em;
+    border-radius: 0.3em;
+  }
+}
+
+* {
+  --gray: #979797;
+  --text: #24292e;
+  --link: #101214;
+  --btn-bg: #fafbfc;
+  --btn-bg-hover: #f3f4f6;
+  --btn-bg-active: #edeff2;
+  --body-bg: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  * {
+    --gray: #686868; /* Inverted from #979797 */
+    --text: #dbd7d2; /* Inverted from #24292E */
+    --link: #e0ddee; /* Inverted from #101214 */
+    --btn-bg: #14161a; /* Inverted from #FAFBFC */
+    --btn-bg-hover: #0c0d0e; /* Inverted from #F3F4F6 */
+    --btn-bg-active: #131216; /* Inverted from #EDEFF2 */
+    --body-bg: #1C1E22;
+  }
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background-color: var(--body-bg);
+}
+
+a,
+button,
+select {
+  color: var(--link);
+}
+
+button,
+select {
+  background-color: var(--btn-bg);
+  border: 1px solid var(--gray);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s cubic-bezier(0.3, 0, 0.5, 1);
+}
+
+button:hover,
+select:hover {
+  background-color: var(--btn-bg-hover);
+  text-decoration: none;
+  transition-duration: 0.1s;
+}
+
+button:active,
+select:active {
+  background-color: var(--btn-bg-active);
+  transition: none 0s;
+}
+
+main {
+  display: grid;
+  grid-template-columns: auto auto;
+  margin-top: 1em;
+  border: solid 1px #979797;
+}
+
+#controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+#editor {
+  min-height: 40rem;
+}
+
+#graph {
+  min-height: 45rem;
+  border-left: solid 1px #979797;
+}
+
+@media (max-width: 992px) {
+  main {
+    grid-template-columns: auto;
+  }
+
+  #graph {
+    border-top: solid 1px #979797;
+    border-left: none;
+  }
 }

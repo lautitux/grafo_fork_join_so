@@ -3,12 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.43.5/src-min-noconflict/ace.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ace-builds@1.43.5/css/ace.min.css"
+    />
     <script src="main.js"></script>
-    <link rel="stylesheet" href="style.css">
-    <title>Document</title>
+    <link rel="stylesheet" href="style.css" />
+    <title>Fork and Join</title>
   </head>
-  <body></body>
+  <body>
+    <div id="elm"></div>
+  </body>
   <script type="module">
-    let app = Elm.Main.init({ node: document.body });
+    const app = Elm.Main.init({ node: document.getElementById("elm") });
+    const darkMode =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const editor = ace.edit("editor");
+    editor.setOption("showPrintMargin", false);
+    editor.setOptions({
+      fontSize: "11pt",
+    });
+    if (darkMode) editor.setTheme("ace/theme/cloud_editor_dark");
+    editor.session.setMode("ace/mode/javascript");
   </script>
 </html>
