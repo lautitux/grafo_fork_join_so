@@ -1,4 +1,4 @@
-module Parse exposing (StatementKind(..), parse)
+module Parse exposing (Statement(..), Located, parse)
 import Parser exposing (..)
 import Set
 
@@ -17,7 +17,7 @@ import Set
 -- INTEGER ::= [0-9]+
 -- EOL ::= "\n"
 
-type StatementKind
+type Statement
     = Label String
     | Counter String Int
     | Fork String
@@ -55,14 +55,14 @@ identifier =
         , reserved = Set.empty
         }
 
-label : Parser StatementKind
+label : Parser Statement
 label = 
     succeed Label
     |= identifier
     |. spaces
     |. symbol ":"
 
-counter : Parser StatementKind
+counter : Parser Statement
 counter =
     succeed Counter
     |= backtrackable identifier
@@ -71,14 +71,14 @@ counter =
     |. spaces
     |= int
 
-unary : String -> (String -> StatementKind) -> Parser StatementKind
+unary : String -> (String -> Statement) -> Parser Statement
 unary s map =
     succeed map
     |. keyword s
     |. spaces
     |= identifier
 
-binary : String -> (String -> String -> StatementKind) -> Parser StatementKind
+binary : String -> (String -> String -> Statement) -> Parser Statement
 binary s map =
     succeed map
     |. keyword s
@@ -89,21 +89,21 @@ binary s map =
     |. spaces
     |= identifier
 
-fork : Parser StatementKind
+fork : Parser Statement
 fork = unary "FORK" Fork
 
-goto : Parser StatementKind
+goto : Parser Statement
 goto = unary "GOTO" Goto
 
-join : Parser StatementKind
+join : Parser Statement
 join = binary "JOIN" Join
 
-quit : Parser StatementKind
+quit : Parser Statement
 quit = 
     succeed Quit
     |. keyword "QUIT"
 
-application : Parser StatementKind
+application : Parser Statement
 application =
     oneOf 
     [ quit
@@ -112,12 +112,12 @@ application =
     , join
     ]
 
-process : Parser StatementKind
+process : Parser Statement
 process = 
     succeed Process
     |= identifier
 
-unlabeled_statement : Parser StatementKind
+unlabeled_statement : Parser Statement
 unlabeled_statement =
     oneOf 
     [
@@ -126,7 +126,7 @@ unlabeled_statement =
         process
     ]
 
-labeled_statement : Parser (Located StatementKind, Maybe (Located StatementKind))
+labeled_statement : Parser (Located Statement, Maybe (Located Statement))
 labeled_statement =
     succeed (\lbl stmt -> (lbl, stmt))
     |= backtrackable (located label)
@@ -137,7 +137,7 @@ labeled_statement =
         , succeed Nothing
         ]
 
-statement : Parser (Located StatementKind, Maybe (Located StatementKind))
+statement : Parser (Located Statement, Maybe (Located Statement))
 statement =
     succeed identity
     |= oneOf 
@@ -149,11 +149,11 @@ statement =
         , end
         ]
 
-statements : Parser (List (Located StatementKind))
+statements : Parser (List (Located Statement))
 statements =
   loop [] statementsHelp
 
-statementsHelp : List (Located StatementKind) -> Parser (Step (List (Located StatementKind)) (List (Located StatementKind)))
+statementsHelp : List (Located Statement) -> Parser (Step (List (Located Statement)) (List (Located Statement)))
 statementsHelp stmts =
   oneOf
     [ succeed (
@@ -171,5 +171,5 @@ statementsHelp stmts =
         |> map (\_ -> Done (List.reverse stmts))
     ]
 
-parse : String -> Result (List DeadEnd) (List (Located StatementKind))
+parse : String -> Result (List DeadEnd) (List (Located Statement))
 parse = run statements
