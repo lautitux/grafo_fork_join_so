@@ -163,6 +163,7 @@ statementsHelp stmts =
                 Nothing -> Loop (lbl :: stmts)
       )
         |= statement
+        |. spacesOrNewLine
     , succeed (Loop stmts)
         |. lineComment ";"
         |. spacesOrNewLine
