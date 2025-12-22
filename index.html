@@ -26,6 +26,9 @@
       fontSize: "11pt",
     });
     if (darkMode) editor.setTheme("ace/theme/cloud_editor_dark");
-    editor.session.setMode("ace/mode/javascript");
+    // TODO: set mode
+    editor.session.on("change", () => {
+      app.ports.messageReceiver.send(editor.session.getValue());
+    });
   </script>
 </html>

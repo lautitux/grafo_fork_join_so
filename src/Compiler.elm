@@ -2,114 +2,125 @@ module Compiler exposing (..)
 
 import Dict exposing (Dict)
 import Parse exposing (Located, Statement(..))
-import Set exposing (Set)
 import Util
-import Html.Attributes exposing (name)
+import Html.Attributes exposing (value)
+import Set exposing (Set)
 
+type Step
+    = Continue State
+    | Merge State Step
+    | End State
+    | Error (Located String)
+
+type Counter
+    = Value (Located Int)
+    | Poisoned (Located String)
 
 type alias State =
-    { graph : Dict String (List String)
-    , counters : Dict String Int
-    , labels : Set String
-    , source : List (Located Statement)
+    { source : List (Located Statement)
     , current : List (Located Statement)
-    , error : Maybe (Located String)
+    , graph : Dict String (Set String)
+    , counters : Dict String Counter
     }
 
+unreachable : String -> Located String
+unreachable s = Located (0, 0) ("Unreachable " ++ s ++ ".") (0, 0)
 
-located : Located Statement -> String -> Located String
-located stmt str =
-    Located stmt.start str stmt.end
+locate : (Located a) -> b -> (Located b)
+locate ref val = Located ref.start val ref.end
 
-
-advance : State -> State
-advance state =
-    { state | current = List.drop 1 state.current }
-
-goto : State -> (Located Statement) -> String -> State
-goto state stmt lbl =
-    let
-        rest = List.drop 1 (Util.takeWhile (\s -> s.value /= (Label lbl)) state.source)
-    in
-        case rest of
-            [] -> { state | error = Just (located stmt ("Attempted a jump to a non existing label '" ++ lbl ++"'.")) }
-            _ -> { state | current = rest }
+goto : State -> String -> Result String State
+goto state lbl =
+    case Util.dropWhile (\s -> s.value /= Label lbl) state.source of
+        [] -> Err ("Failed to find label '" ++ lbl ++ "'.")
+        stmts -> Ok { state | current = stmts }
 
 merge : State -> State -> State
 merge state1 state2 =
-    { labels = Set.union state1.labels state2.labels
-    , source = state1.source
-    , current = state1.current
-    , error = state2.error
-    , counters = Dict.union state1.counters state2.counters
-    , graph = Dict.merge
-        (\vertex edges graph -> Dict.insert vertex edges graph)
-        (\vertex edges1 edges2 graph -> Dict.insert vertex (Set.toList (Set.fromList <| edges1 ++ edges2)) graph)
-        (\vertex edges graph -> Dict.insert vertex edges graph)
-        state1.graph
-        state2.graph
-        Dict.empty
-    }
-
-compileStatement : State -> String -> State
-compileStatement state parent =
-    case state.current of
-        [] -> state
-        stmt :: _ ->
-            case stmt.value of
-                Counter counter val ->
-                    case Dict.get counter state.counters of
-                        Nothing ->
-                            compileStatement (advance { state | counters = Dict.insert counter val state.counters }) parent
-                        Just _ ->
-                            ({state |  
-                              error = Just (located stmt ("Attempted re-assign of an already existing counter '" ++ counter ++ "'."))
-                            })
-                Goto lbl ->
-                    let
-                        new_state = goto state stmt lbl
-                    in
-                        case new_state.error of
-                            Nothing -> compileStatement (new_state) parent
-                            Just _ -> new_state
-                Fork lbl ->
-                    compileStatement (merge (advance state) (compileStatement (goto state stmt lbl) parent)) parent
-                Join counter lbl ->
-                    case Dict.get counter state.counters of
-                        Just val ->
-                            if val == 0 then
-                                let
-                                    new_state = goto state stmt lbl
-                                in
-                                    case new_state.error of
-                                        Nothing -> compileStatement (new_state) parent
-                                        Just _ -> new_state
-                            else
-                                compileStatement (advance { state | counters = Dict.insert counter (val - 1) state.counters }) parent
-                        Nothing ->
-                            { state | error = Just (located stmt ("Counter '" ++ counter ++ "' does not exist.")) }
-                Label _ -> compileStatement (advance state) parent
-                Quit -> state
-                Process name ->
-                    compileStatement
-                        (advance 
-                            { state |
-                            graph =
-                                Dict.insert 
-                                    name
-                                    (case Dict.get parent state.graph of
-                                        Nothing -> [name]
-                                        Just children -> name :: children)
-                                    state.graph
-                            }
-                        )
-                        name
-
-compile : List (Located Statement) -> Result (Located String) (Dict String (List String))
-compile stmts = 
     let
-        state = compileStatement { graph = Dict.empty, counters = Dict.empty, labels = Set.empty, source = stmts, current = stmts, error = Nothing } ""
+        keep : comparable -> v -> Dict comparable v -> Dict comparable v
+        keep comparable v dict = Dict.insert comparable v dict
     in
-        case state.error of
-            Nothing -> Ok state.graph
-            Just err -> Err err
+        { source   = state1.source
+        , current  = state1.current
+        , counters = Dict.union state2.counters state1.counters
+        , graph =
+            Dict.merge
+                keep
+                (\parent a b dict -> Dict.insert parent (Set.union a b) dict)
+                keep
+                state1.graph
+                state2.graph
+                Dict.empty
+        }
+
+
+compileStatements : String -> Step -> Step
+compileStatements parent step =
+    case step of
+        Merge state1 merge_step -> 
+            case merge_step of
+                End state2 -> compileStatements parent (Continue <| merge state1 state2)
+                Error _ -> merge_step
+                _ -> 
+                    let
+                        _ = Debug.log "Merge Step" merge_step
+                    in
+                        Error <| unreachable "Merge"
+        Continue state ->
+            case state.current of
+                [] -> End state
+                stmt :: rest ->
+                    compileStatements parent <|
+                    case stmt.value of
+                        Label _ -> Continue { state | current = rest }
+                        Counter counter value ->
+                            case Dict.get counter state.counters of
+                                Nothing -> 
+                                    Continue
+                                        { state 
+                                        | counters = Dict.insert counter (Value <| locate stmt value) state.counters
+                                        , current = rest
+                                        }
+                                Just _ ->
+                                    Error <| locate stmt ("Cannot re-assign to already assigned counter '" ++ counter ++ "'.")
+                        Fork lbl ->
+                            case goto state lbl of
+                                Ok goto_state -> Merge { state | current = rest } <| compileStatements parent (Continue goto_state)
+                                Err msg -> Error <| locate stmt msg
+                        Goto lbl ->
+                            case goto state lbl of
+                                Ok goto_state -> Continue goto_state
+                                Err msg -> Error <| locate stmt msg
+                        Join counter lbl ->
+                            case Dict.get counter state.counters of
+                                Nothing -> Error <| locate stmt ("Cannot join on non-existing counter '" ++ counter ++ "'.")
+                                Just (Value count) ->
+                                    case goto state lbl of
+                                        Ok goto_state -> 
+                                            Continue 
+                                                { goto_state 
+                                                | counters = Dict.insert counter (Value <| locate count (count.value - 1)) state.counters
+                                                }
+                                        Err msg -> Error <| locate stmt msg
+                                Just (Poisoned error) -> Error error
+                        Quit -> End state
+                        Process name ->
+                            compileStatements name <|
+                                Continue
+                                    { state
+                                    | graph = 
+                                        case Dict.get parent state.graph of
+                                            Nothing -> Dict.insert parent (Set.insert name Set.empty) state.graph
+                                            Just other -> Dict.insert parent (Set.insert name other) state.graph
+                                    , current = rest
+                                    }
+        otherwise -> otherwise
+    
+
+compile : List (Located Statement) -> Result (Located String) (Dict String (Set String))
+compile stmts =
+    case compileStatements "" (Continue { source = stmts, current = stmts, graph = Dict.empty, counters = Dict.empty }) of
+        End state -> Ok state.graph
+        Error err -> Err err
+        _ -> Err <| unreachable "Compile"

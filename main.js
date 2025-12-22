@@ -80,6 +80,190 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
 console.warn('Compiled in DEV mode. Follow the advice at https://elm-lang.org/0.19.1/optimize for better performance and smaller assets.');
 
 
+// EQUALITY
+
+function _Utils_eq(x, y)
+{
+	for (
+		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
+		isEqual && (pair = stack.pop());
+		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
+		)
+	{}
+
+	return isEqual;
+}
+
+function _Utils_eqHelp(x, y, depth, stack)
+{
+	if (x === y)
+	{
+		return true;
+	}
+
+	if (typeof x !== 'object' || x === null || y === null)
+	{
+		typeof x === 'function' && _Debug_crash(5);
+		return false;
+	}
+
+	if (depth > 100)
+	{
+		stack.push(_Utils_Tuple2(x,y));
+		return true;
+	}
+
+	/**/
+	if (x.$ === 'Set_elm_builtin')
+	{
+		x = $elm$core$Set$toList(x);
+		y = $elm$core$Set$toList(y);
+	}
+	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	/**_UNUSED/
+	if (x.$ < 0)
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	for (var key in x)
+	{
+		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+var _Utils_equal = F2(_Utils_eq);
+var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
+
+
+
+// COMPARISONS
+
+// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
+// the particular integer values assigned to LT, EQ, and GT.
+
+function _Utils_cmp(x, y, ord)
+{
+	if (typeof x !== 'object')
+	{
+		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
+	}
+
+	/**/
+	if (x instanceof String)
+	{
+		var a = x.valueOf();
+		var b = y.valueOf();
+		return a === b ? 0 : a < b ? -1 : 1;
+	}
+	//*/
+
+	/**_UNUSED/
+	if (typeof x.$ === 'undefined')
+	//*/
+	/**/
+	if (x.$[0] === '#')
+	//*/
+	{
+		return (ord = _Utils_cmp(x.a, y.a))
+			? ord
+			: (ord = _Utils_cmp(x.b, y.b))
+				? ord
+				: _Utils_cmp(x.c, y.c);
+	}
+
+	// traverse conses until end of a list or a mismatch
+	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
+	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
+}
+
+var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
+var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
+var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
+var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
+
+var _Utils_compare = F2(function(x, y)
+{
+	var n = _Utils_cmp(x, y);
+	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
+});
+
+
+// COMMON VALUES
+
+var _Utils_Tuple0_UNUSED = 0;
+var _Utils_Tuple0 = { $: '#0' };
+
+function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
+
+function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+
+function _Utils_chr_UNUSED(c) { return c; }
+function _Utils_chr(c) { return new String(c); }
+
+
+// RECORDS
+
+function _Utils_update(oldRecord, updatedFields)
+{
+	var newRecord = {};
+
+	for (var key in oldRecord)
+	{
+		newRecord[key] = oldRecord[key];
+	}
+
+	for (var key in updatedFields)
+	{
+		newRecord[key] = updatedFields[key];
+	}
+
+	return newRecord;
+}
+
+
+// APPEND
+
+var _Utils_append = F2(_Utils_ap);
+
+function _Utils_ap(xs, ys)
+{
+	// append Strings
+	if (typeof xs === 'string')
+	{
+		return xs + ys;
+	}
+
+	// append Lists
+	if (!xs.b)
+	{
+		return ys;
+	}
+	var root = _List_Cons(xs.a, ys);
+	xs = xs.b
+	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		curr = curr.b = _List_Cons(xs.a, ys);
+	}
+	return root;
+}
+
+
+
 var _List_Nil_UNUSED = { $: 0 };
 var _List_Nil = { $: '[]' };
 
@@ -605,190 +789,6 @@ function _Debug_regionToString(region)
 		return 'on line ' + region.start.line;
 	}
 	return 'on lines ' + region.start.line + ' through ' + region.end.line;
-}
-
-
-
-// EQUALITY
-
-function _Utils_eq(x, y)
-{
-	for (
-		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
-		isEqual && (pair = stack.pop());
-		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
-		)
-	{}
-
-	return isEqual;
-}
-
-function _Utils_eqHelp(x, y, depth, stack)
-{
-	if (x === y)
-	{
-		return true;
-	}
-
-	if (typeof x !== 'object' || x === null || y === null)
-	{
-		typeof x === 'function' && _Debug_crash(5);
-		return false;
-	}
-
-	if (depth > 100)
-	{
-		stack.push(_Utils_Tuple2(x,y));
-		return true;
-	}
-
-	/**/
-	if (x.$ === 'Set_elm_builtin')
-	{
-		x = $elm$core$Set$toList(x);
-		y = $elm$core$Set$toList(y);
-	}
-	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
-	{
-		x = $elm$core$Dict$toList(x);
-		y = $elm$core$Dict$toList(y);
-	}
-	//*/
-
-	/**_UNUSED/
-	if (x.$ < 0)
-	{
-		x = $elm$core$Dict$toList(x);
-		y = $elm$core$Dict$toList(y);
-	}
-	//*/
-
-	for (var key in x)
-	{
-		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-var _Utils_equal = F2(_Utils_eq);
-var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
-
-
-
-// COMPARISONS
-
-// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
-// the particular integer values assigned to LT, EQ, and GT.
-
-function _Utils_cmp(x, y, ord)
-{
-	if (typeof x !== 'object')
-	{
-		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
-	}
-
-	/**/
-	if (x instanceof String)
-	{
-		var a = x.valueOf();
-		var b = y.valueOf();
-		return a === b ? 0 : a < b ? -1 : 1;
-	}
-	//*/
-
-	/**_UNUSED/
-	if (typeof x.$ === 'undefined')
-	//*/
-	/**/
-	if (x.$[0] === '#')
-	//*/
-	{
-		return (ord = _Utils_cmp(x.a, y.a))
-			? ord
-			: (ord = _Utils_cmp(x.b, y.b))
-				? ord
-				: _Utils_cmp(x.c, y.c);
-	}
-
-	// traverse conses until end of a list or a mismatch
-	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
-	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
-}
-
-var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
-var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
-var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
-var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
-
-var _Utils_compare = F2(function(x, y)
-{
-	var n = _Utils_cmp(x, y);
-	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
-});
-
-
-// COMMON VALUES
-
-var _Utils_Tuple0_UNUSED = 0;
-var _Utils_Tuple0 = { $: '#0' };
-
-function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
-
-function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
-
-function _Utils_chr_UNUSED(c) { return c; }
-function _Utils_chr(c) { return new String(c); }
-
-
-// RECORDS
-
-function _Utils_update(oldRecord, updatedFields)
-{
-	var newRecord = {};
-
-	for (var key in oldRecord)
-	{
-		newRecord[key] = oldRecord[key];
-	}
-
-	for (var key in updatedFields)
-	{
-		newRecord[key] = updatedFields[key];
-	}
-
-	return newRecord;
-}
-
-
-// APPEND
-
-var _Utils_append = F2(_Utils_ap);
-
-function _Utils_ap(xs, ys)
-{
-	// append Strings
-	if (typeof xs === 'string')
-	{
-		return xs + ys;
-	}
-
-	// append Lists
-	if (!xs.b)
-	{
-		return ys;
-	}
-	var root = _List_Cons(xs.a, ys);
-	xs = xs.b
-	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		curr = curr.b = _List_Cons(xs.a, ys);
-	}
-	return root;
 }
 
 
@@ -4509,32 +4509,9 @@ var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString
 	return _Utils_Tuple3(newOffset, row, col);
 });
 var $elm$core$Basics$EQ = {$: 'EQ'};
+var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
 var $elm$core$List$cons = _List_cons;
-var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
-var $elm$core$Array$foldr = F3(
-	function (func, baseCase, _v0) {
-		var tree = _v0.c;
-		var tail = _v0.d;
-		var helper = F2(
-			function (node, acc) {
-				if (node.$ === 'SubTree') {
-					var subTree = node.a;
-					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
-				} else {
-					var values = node.a;
-					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
-				}
-			});
-		return A3(
-			$elm$core$Elm$JsArray$foldr,
-			helper,
-			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
-			tree);
-	});
-var $elm$core$Array$toList = function (array) {
-	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
-};
 var $elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
@@ -4587,8 +4564,30 @@ var $elm$core$Set$toList = function (_v0) {
 	var dict = _v0.a;
 	return $elm$core$Dict$keys(dict);
 };
-var $elm$core$Basics$GT = {$: 'GT'};
-var $author$project$Main$init = _Utils_Tuple0;
+var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
+var $elm$core$Array$foldr = F3(
+	function (func, baseCase, _v0) {
+		var tree = _v0.c;
+		var tail = _v0.d;
+		var helper = F2(
+			function (node, acc) {
+				if (node.$ === 'SubTree') {
+					var subTree = node.a;
+					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+				} else {
+					var values = node.a;
+					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
+				}
+			});
+		return A3(
+			$elm$core$Elm$JsArray$foldr,
+			helper,
+			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
+			tree);
+	});
+var $elm$core$Array$toList = function (array) {
+	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
+};
 var $elm$core$Result$Err = function (a) {
 	return {$: 'Err', a: a};
 };
@@ -5297,56 +5296,42 @@ var $elm$core$Task$perform = F2(
 			$elm$core$Task$Perform(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
+var $elm$browser$Browser$element = _Browser_element;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $elm$browser$Browser$sandbox = function (impl) {
-	return _Browser_element(
-		{
-			init: function (_v0) {
-				return _Utils_Tuple2(impl.init, $elm$core$Platform$Cmd$none);
-			},
-			subscriptions: function (_v1) {
-				return $elm$core$Platform$Sub$none;
-			},
-			update: F2(
-				function (msg, model) {
-					return _Utils_Tuple2(
-						A2(impl.update, msg, model),
-						$elm$core$Platform$Cmd$none);
-				}),
-			view: impl.view
-		});
+var $author$project$Main$init = function (_v0) {
+	return _Utils_Tuple2('', $elm$core$Platform$Cmd$none);
 };
-var $elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
+var $author$project$Main$Recv = function (a) {
+	return {$: 'Recv', a: a};
+};
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $author$project$Main$messageReceiver = _Platform_incomingPort('messageReceiver', $elm$json$Json$Decode$string);
+var $author$project$Main$subscriptions = function (_v0) {
+	return $author$project$Main$messageReceiver($author$project$Main$Recv);
+};
+var $author$project$Compiler$Continue = function (a) {
+	return {$: 'Continue', a: a};
+};
+var $author$project$Compiler$End = function (a) {
+	return {$: 'End', a: a};
+};
+var $author$project$Compiler$Error = function (a) {
+	return {$: 'Error', a: a};
+};
+var $author$project$Compiler$Merge = F2(
+	function (a, b) {
+		return {$: 'Merge', a: a, b: b};
 	});
-var $author$project$Compiler$advance = function (state) {
-	return _Utils_update(
-		state,
-		{
-			current: A2($elm$core$List$drop, 1, state.current)
-		});
+var $author$project$Compiler$Value = function (a) {
+	return {$: 'Value', a: a};
 };
+var $elm$core$Set$Set_elm_builtin = function (a) {
+	return {$: 'Set_elm_builtin', a: a};
+};
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
 var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
@@ -5382,64 +5367,46 @@ var $elm$core$Dict$get = F2(
 var $author$project$Parse$Label = function (a) {
 	return {$: 'Label', a: a};
 };
-var $author$project$Parse$Located = F3(
-	function (start, value, end) {
-		return {end: end, start: start, value: value};
-	});
-var $author$project$Compiler$located = F2(
-	function (stmt, str) {
-		return A3($author$project$Parse$Located, stmt.start, str, stmt.end);
+var $author$project$Util$dropWhile = F2(
+	function (p, ls) {
+		dropWhile:
+		while (true) {
+			if (!ls.b) {
+				return _List_Nil;
+			} else {
+				var x = ls.a;
+				var xs = ls.b;
+				if (p(x)) {
+					var $temp$p = p,
+						$temp$ls = xs;
+					p = $temp$p;
+					ls = $temp$ls;
+					continue dropWhile;
+				} else {
+					return ls;
+				}
+			}
+		}
 	});
 var $elm$core$Basics$neq = _Utils_notEqual;
-var $author$project$Util$takeWhile = F2(
-	function (p, list) {
-		var loop = F2(
-			function (ls, acc) {
-				loop:
-				while (true) {
-					if (!ls.b) {
-						return $elm$core$List$reverse(acc);
-					} else {
-						var x = ls.a;
-						var xs = ls.b;
-						if (p(x)) {
-							var $temp$ls = xs,
-								$temp$acc = A2($elm$core$List$cons, x, acc);
-							ls = $temp$ls;
-							acc = $temp$acc;
-							continue loop;
-						} else {
-							return $elm$core$List$reverse(acc);
-						}
-					}
-				}
-			});
-		return A2(loop, list, _List_Nil);
-	});
-var $author$project$Compiler$goto = F3(
-	function (state, stmt, lbl) {
-		var rest = A2(
-			$elm$core$List$drop,
-			1,
-			A2(
-				$author$project$Util$takeWhile,
-				function (s) {
-					return !_Utils_eq(
-						s.value,
-						$author$project$Parse$Label(lbl));
-				},
-				state.source));
-		if (!rest.b) {
-			return _Utils_update(
-				state,
-				{
-					error: $elm$core$Maybe$Just(
-						A2($author$project$Compiler$located, stmt, 'Attempted a jump to a non existing label \'' + (lbl + '\'.')))
-				});
+var $author$project$Compiler$goto = F2(
+	function (state, lbl) {
+		var _v0 = A2(
+			$author$project$Util$dropWhile,
+			function (s) {
+				return !_Utils_eq(
+					s.value,
+					$author$project$Parse$Label(lbl));
+			},
+			state.source);
+		if (!_v0.b) {
+			return $elm$core$Result$Err('Failed to find label \'' + (lbl + '\'.'));
 		} else {
-			return _Utils_update(
-				state,
-				{current: rest});
+			var stmts = _v0;
+			return $elm$core$Result$Ok(
+				_Utils_update(
+					state,
+					{current: stmts}));
 		}
 	});
 var $elm$core$Dict$Black = {$: 'Black'};
@@ -5447,7 +5414,6 @@ var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
 		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
 	});
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$Red = {$: 'Red'};
 var $elm$core$Dict$balance = F5(
 	function (color, key, value, left, right) {
@@ -5551,20 +5517,21 @@ var $elm$core$Dict$insert = F3(
 			return x;
 		}
 	});
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $elm$core$Set$Set_elm_builtin = function (a) {
-	return {$: 'Set_elm_builtin', a: a};
-};
-var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
 var $elm$core$Set$insert = F2(
 	function (key, _v0) {
 		var dict = _v0.a;
 		return $elm$core$Set$Set_elm_builtin(
 			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
 	});
-var $elm$core$Set$fromList = function (list) {
-	return A3($elm$core$List$foldl, $elm$core$Set$insert, $elm$core$Set$empty, list);
-};
+var $author$project$Parse$Located = F3(
+	function (start, value, end) {
+		return {end: end, start: start, value: value};
+	});
+var $author$project$Compiler$locate = F2(
+	function (ref, val) {
+		return A3($author$project$Parse$Located, ref.start, val, ref.end);
+	});
+var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
 		foldl:
@@ -5664,186 +5631,223 @@ var $elm$core$Set$union = F2(
 	});
 var $author$project$Compiler$merge = F2(
 	function (state1, state2) {
+		var keep = F3(
+			function (comparable, v, dict) {
+				return A3($elm$core$Dict$insert, comparable, v, dict);
+			});
 		return {
-			counters: A2($elm$core$Dict$union, state1.counters, state2.counters),
+			counters: A2($elm$core$Dict$union, state2.counters, state1.counters),
 			current: state1.current,
-			error: state2.error,
 			graph: A6(
 				$elm$core$Dict$merge,
-				F3(
-					function (vertex, edges, graph) {
-						return A3($elm$core$Dict$insert, vertex, edges, graph);
-					}),
+				keep,
 				F4(
-					function (vertex, edges1, edges2, graph) {
+					function (parent, a, b, dict) {
 						return A3(
 							$elm$core$Dict$insert,
-							vertex,
-							$elm$core$Set$toList(
-								$elm$core$Set$fromList(
-									_Utils_ap(edges1, edges2))),
-							graph);
+							parent,
+							A2($elm$core$Set$union, a, b),
+							dict);
 					}),
-				F3(
-					function (vertex, edges, graph) {
-						return A3($elm$core$Dict$insert, vertex, edges, graph);
-					}),
+				keep,
 				state1.graph,
 				state2.graph,
 				$elm$core$Dict$empty),
-			labels: A2($elm$core$Set$union, state1.labels, state2.labels),
 			source: state1.source
 		};
 	});
-var $author$project$Compiler$compileStatement = F2(
-	function (state, parent) {
-		compileStatement:
+var $author$project$Compiler$unreachable = function (s) {
+	return A3(
+		$author$project$Parse$Located,
+		_Utils_Tuple2(0, 0),
+		'Unreachable ' + (s + '.'),
+		_Utils_Tuple2(0, 0));
+};
+var $author$project$Compiler$compileStatements = F2(
+	function (parent, step) {
+		compileStatements:
 		while (true) {
-			var _v0 = state.current;
-			if (!_v0.b) {
-				return state;
-			} else {
-				var stmt = _v0.a;
-				var _v1 = stmt.value;
-				switch (_v1.$) {
-					case 'Counter':
-						var counter = _v1.a;
-						var val = _v1.b;
-						var _v2 = A2($elm$core$Dict$get, counter, state.counters);
-						if (_v2.$ === 'Nothing') {
-							var $temp$state = $author$project$Compiler$advance(
-								_Utils_update(
-									state,
-									{
-										counters: A3($elm$core$Dict$insert, counter, val, state.counters)
-									})),
-								$temp$parent = parent;
-							state = $temp$state;
+			switch (step.$) {
+				case 'Merge':
+					var state1 = step.a;
+					var merge_step = step.b;
+					switch (merge_step.$) {
+						case 'End':
+							var state2 = merge_step.a;
+							var $temp$parent = parent,
+								$temp$step = $author$project$Compiler$Continue(
+								A2($author$project$Compiler$merge, state1, state2));
 							parent = $temp$parent;
-							continue compileStatement;
-						} else {
-							return _Utils_update(
-								state,
-								{
-									error: $elm$core$Maybe$Just(
-										A2($author$project$Compiler$located, stmt, 'Attempted re-assign of an already existing counter \'' + (counter + '\'.')))
-								});
-						}
-					case 'Goto':
-						var lbl = _v1.a;
-						var new_state = A3($author$project$Compiler$goto, state, stmt, lbl);
-						var _v3 = new_state.error;
-						if (_v3.$ === 'Nothing') {
-							var $temp$state = new_state,
-								$temp$parent = parent;
-							state = $temp$state;
-							parent = $temp$parent;
-							continue compileStatement;
-						} else {
-							return new_state;
-						}
-					case 'Fork':
-						var lbl = _v1.a;
-						var $temp$state = A2(
-							$author$project$Compiler$merge,
-							$author$project$Compiler$advance(state),
-							A2(
-								$author$project$Compiler$compileStatement,
-								A3($author$project$Compiler$goto, state, stmt, lbl),
-								parent)),
-							$temp$parent = parent;
-						state = $temp$state;
-						parent = $temp$parent;
-						continue compileStatement;
-					case 'Join':
-						var counter = _v1.a;
-						var lbl = _v1.b;
-						var _v4 = A2($elm$core$Dict$get, counter, state.counters);
-						if (_v4.$ === 'Just') {
-							var val = _v4.a;
-							if (!val) {
-								var new_state = A3($author$project$Compiler$goto, state, stmt, lbl);
-								var _v5 = new_state.error;
-								if (_v5.$ === 'Nothing') {
-									var $temp$state = new_state,
-										$temp$parent = parent;
-									state = $temp$state;
-									parent = $temp$parent;
-									continue compileStatement;
-								} else {
-									return new_state;
-								}
-							} else {
-								var $temp$state = $author$project$Compiler$advance(
-									_Utils_update(
-										state,
-										{
-											counters: A3($elm$core$Dict$insert, counter, val - 1, state.counters)
-										})),
-									$temp$parent = parent;
-								state = $temp$state;
-								parent = $temp$parent;
-								continue compileStatement;
-							}
-						} else {
-							return _Utils_update(
-								state,
-								{
-									error: $elm$core$Maybe$Just(
-										A2($author$project$Compiler$located, stmt, 'Counter \'' + (counter + '\' does not exist.')))
-								});
-						}
-					case 'Label':
-						var $temp$state = $author$project$Compiler$advance(state),
-							$temp$parent = parent;
-						state = $temp$state;
-						parent = $temp$parent;
-						continue compileStatement;
-					case 'Quit':
-						return state;
-					default:
-						var name = _v1.a;
-						var $temp$state = $author$project$Compiler$advance(
-							_Utils_update(
-								state,
-								{
-									graph: A3(
-										$elm$core$Dict$insert,
-										name,
-										function () {
-											var _v6 = A2($elm$core$Dict$get, parent, state.graph);
-											if (_v6.$ === 'Nothing') {
-												return _List_fromArray(
-													[name]);
+							step = $temp$step;
+							continue compileStatements;
+						case 'Error':
+							return merge_step;
+						default:
+							var _v2 = A2($elm$core$Debug$log, 'Merge Step', merge_step);
+							return $author$project$Compiler$Error(
+								$author$project$Compiler$unreachable('Merge'));
+					}
+				case 'Continue':
+					var state = step.a;
+					var _v3 = state.current;
+					if (!_v3.b) {
+						return $author$project$Compiler$End(state);
+					} else {
+						var stmt = _v3.a;
+						var rest = _v3.b;
+						return A2(
+							$author$project$Compiler$compileStatements,
+							parent,
+							function () {
+								var _v4 = stmt.value;
+								switch (_v4.$) {
+									case 'Label':
+										return $author$project$Compiler$Continue(
+											_Utils_update(
+												state,
+												{current: rest}));
+									case 'Counter':
+										var counter = _v4.a;
+										var value = _v4.b;
+										var _v5 = A2($elm$core$Dict$get, counter, state.counters);
+										if (_v5.$ === 'Nothing') {
+											return $author$project$Compiler$Continue(
+												_Utils_update(
+													state,
+													{
+														counters: A3(
+															$elm$core$Dict$insert,
+															counter,
+															$author$project$Compiler$Value(
+																A2($author$project$Compiler$locate, stmt, value)),
+															state.counters),
+														current: rest
+													}));
+										} else {
+											return $author$project$Compiler$Error(
+												A2($author$project$Compiler$locate, stmt, 'Cannot re-assign to already assigned counter \'' + (counter + '\'.')));
+										}
+									case 'Fork':
+										var lbl = _v4.a;
+										var _v6 = A2($author$project$Compiler$goto, state, lbl);
+										if (_v6.$ === 'Ok') {
+											var goto_state = _v6.a;
+											return A2(
+												$author$project$Compiler$Merge,
+												_Utils_update(
+													state,
+													{current: rest}),
+												A2(
+													$author$project$Compiler$compileStatements,
+													parent,
+													$author$project$Compiler$Continue(goto_state)));
+										} else {
+											var msg = _v6.a;
+											return $author$project$Compiler$Error(
+												A2($author$project$Compiler$locate, stmt, msg));
+										}
+									case 'Goto':
+										var lbl = _v4.a;
+										var _v7 = A2($author$project$Compiler$goto, state, lbl);
+										if (_v7.$ === 'Ok') {
+											var goto_state = _v7.a;
+											return $author$project$Compiler$Continue(goto_state);
+										} else {
+											var msg = _v7.a;
+											return $author$project$Compiler$Error(
+												A2($author$project$Compiler$locate, stmt, msg));
+										}
+									case 'Join':
+										var counter = _v4.a;
+										var lbl = _v4.b;
+										var _v8 = A2($elm$core$Dict$get, counter, state.counters);
+										if (_v8.$ === 'Nothing') {
+											return $author$project$Compiler$Error(
+												A2($author$project$Compiler$locate, stmt, 'Cannot join on non-existing counter \'' + (counter + '\'.')));
+										} else {
+											if (_v8.a.$ === 'Value') {
+												var count = _v8.a.a;
+												var _v9 = A2($author$project$Compiler$goto, state, lbl);
+												if (_v9.$ === 'Ok') {
+													var goto_state = _v9.a;
+													return $author$project$Compiler$Continue(
+														_Utils_update(
+															goto_state,
+															{
+																counters: A3(
+																	$elm$core$Dict$insert,
+																	counter,
+																	$author$project$Compiler$Value(
+																		A2($author$project$Compiler$locate, count, count.value - 1)),
+																	state.counters)
+															}));
+												} else {
+													var msg = _v9.a;
+													return $author$project$Compiler$Error(
+														A2($author$project$Compiler$locate, stmt, msg));
+												}
 											} else {
-												var children = _v6.a;
-												return A2($elm$core$List$cons, name, children);
+												var error = _v8.a.a;
+												return $author$project$Compiler$Error(error);
 											}
-										}(),
-										state.graph)
-								})),
-							$temp$parent = name;
-						state = $temp$state;
-						parent = $temp$parent;
-						continue compileStatement;
-				}
+										}
+									case 'Quit':
+										return $author$project$Compiler$End(state);
+									default:
+										var name = _v4.a;
+										return A2(
+											$author$project$Compiler$compileStatements,
+											name,
+											$author$project$Compiler$Continue(
+												_Utils_update(
+													state,
+													{
+														current: rest,
+														graph: function () {
+															var _v10 = A2($elm$core$Dict$get, parent, state.graph);
+															if (_v10.$ === 'Nothing') {
+																return A3(
+																	$elm$core$Dict$insert,
+																	parent,
+																	A2($elm$core$Set$insert, name, $elm$core$Set$empty),
+																	state.graph);
+															} else {
+																var other = _v10.a;
+																return A3(
+																	$elm$core$Dict$insert,
+																	parent,
+																	A2($elm$core$Set$insert, name, other),
+																	state.graph);
+															}
+														}()
+													})));
+								}
+							}());
+					}
+				default:
+					var otherwise = step;
+					return otherwise;
 			}
 		}
 	});
 var $author$project$Compiler$compile = function (stmts) {
-	var state = A2(
-		$author$project$Compiler$compileStatement,
-		{counters: $elm$core$Dict$empty, current: stmts, error: $elm$core$Maybe$Nothing, graph: $elm$core$Dict$empty, labels: $elm$core$Set$empty, source: stmts},
-		'');
-	var _v0 = state.error;
-	if (_v0.$ === 'Nothing') {
-		return $elm$core$Result$Ok(state.graph);
-	} else {
-		var err = _v0.a;
-		return $elm$core$Result$Err(err);
+	var _v0 = A2(
+		$author$project$Compiler$compileStatements,
+		'',
+		$author$project$Compiler$Continue(
+			{counters: $elm$core$Dict$empty, current: stmts, graph: $elm$core$Dict$empty, source: stmts}));
+	switch (_v0.$) {
+		case 'End':
+			var state = _v0.a;
+			return $elm$core$Result$Ok(state.graph);
+		case 'Error':
+			var err = _v0.a;
+			return $elm$core$Result$Err(err);
+		default:
+			return $elm$core$Result$Err(
+				$author$project$Compiler$unreachable('Compile'));
 	}
 };
-var $elm$core$Debug$log = _Debug_log;
 var $elm$parser$Parser$DeadEnd = F3(
 	function (row, col, problem) {
 		return {col: col, problem: problem, row: row};
@@ -6773,7 +6777,7 @@ var $author$project$Parse$statementsHelp = function (stmts) {
 								A2($elm$core$List$cons, lbl, stmts));
 						}
 					}),
-				$author$project$Parse$statement),
+				A2($elm$parser$Parser$ignorer, $author$project$Parse$statement, $author$project$Parse$spacesOrNewLine)),
 				A2(
 				$elm$parser$Parser$ignorer,
 				A2(
@@ -6796,7 +6800,6 @@ var $author$project$Parse$statementsHelp = function (stmts) {
 };
 var $author$project$Parse$statements = A2($elm$parser$Parser$loop, _List_Nil, $author$project$Parse$statementsHelp);
 var $author$project$Parse$parse = $elm$parser$Parser$run($author$project$Parse$statements);
-var $author$project$Main$program = 'ContF=2\n\nContG=3\n\nFORK LA\n\nFORK LD\n\nH\n\nFORK LJF\n\nGOTO LJG\n\nLD: D\n\nFORK LE\n\nGOTO LJF\n\nQUIT\n\nLE: E\n\nGOTO LJG\n\nLA: A\n\nFORK LC\n\nB\n\nQUIT\n\nLC: C\n\nLJG: JOIN ContG, LG\n\nQUIT\n\nLG: G\n\nQUIT\n\nLJF: JOIN ContF, LF\n\nQUIT\n\nLF: F';
 var $elm$core$Result$withDefault = F2(
 	function (def, result) {
 		if (result.$ === 'Ok') {
@@ -6808,18 +6811,30 @@ var $elm$core$Result$withDefault = F2(
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		var stmts = A2(
-			$elm$core$Result$withDefault,
-			_List_Nil,
-			A2(
-				$elm$core$Debug$log,
-				'Parsed',
-				$author$project$Parse$parse($author$project$Main$program)));
-		var graph = $author$project$Compiler$compile(stmts);
-		var _v1 = A2($elm$core$Debug$log, 'Graph', graph);
-		return _Utils_Tuple0;
+		switch (msg.$) {
+			case 'Run':
+				var stmts = A2(
+					$elm$core$Result$withDefault,
+					_List_Nil,
+					A2(
+						$elm$core$Debug$log,
+						'Parsed',
+						$author$project$Parse$parse(model)));
+				var _v1 = A2(
+					$elm$core$Debug$log,
+					'Compiled',
+					$author$project$Compiler$compile(stmts));
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'Send':
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			default:
+				var code = msg.a;
+				return _Utils_Tuple2(
+					A2($elm$core$Debug$log, 'Model', code),
+					$elm$core$Platform$Cmd$none);
+		}
 	});
-var $author$project$Main$Click = {$: 'Click'};
+var $author$project$Main$Run = {$: 'Run'};
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
@@ -6923,7 +6938,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$button,
 										_List_fromArray(
 											[
-												$elm$html$Html$Events$onClick($author$project$Main$Click)
+												$elm$html$Html$Events$onClick($author$project$Main$Run)
 											]),
 										_List_fromArray(
 											[
@@ -7009,7 +7024,7 @@ var $author$project$Main$view = function (model) {
 					]))
 			]));
 };
-var $author$project$Main$main = $elm$browser$Browser$sandbox(
-	{init: $author$project$Main$init, update: $author$project$Main$update, view: $author$project$Main$view});
+var $author$project$Main$main = $elm$browser$Browser$element(
+	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));

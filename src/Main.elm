@@ -1,62 +1,53 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Compiler exposing (compile)
 import Parse exposing (parse)
+import Platform.Cmd as Cmd
+import Compiler exposing (compile)
 
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element
+    { init = init
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    }
 
 
-type alias Model = ()
+
+type alias Model = String
 
 
-init : Model
-init = ()
+init : () -> ( Model, Cmd Msg )
+init _ = ( "", Cmd.none )
 
 
-type Msg = Click
+type Msg 
+    = Run
+    | Send
+    | Recv String
 
-program =
-    """ContF=2\n
-ContG=3\n
-FORK LA\n
-FORK LD\n
-H\n
-FORK LJF\n
-GOTO LJG\n
-LD: D\n
-FORK LE\n
-GOTO LJF\n
-QUIT\n
-LE: E\n
-GOTO LJG\n
-LA: A\n
-FORK LC\n
-B\n
-QUIT\n
-LC: C\n
-LJG: JOIN ContG, LG\n
-QUIT\n
-LG: G\n
-QUIT\n
-LJF: JOIN ContF, LF\n
-QUIT\n
-LF: F"""
+port sendMessage : String -> Cmd msg
+port messageReceiver : (String -> msg) -> Sub msg
 
-update : Msg -> Model -> Model
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    messageReceiver Recv
+
+update : Msg -> Model ->  ( Model, Cmd Msg )
 update msg model = 
     case msg of
-        Click ->
+        Run ->
             let
-                stmts = Result.withDefault [] (Debug.log "Parsed" (parse program))
-                graph = compile stmts
-                _ = Debug.log "Graph" graph
+                stmts = Result.withDefault [] (Debug.log "Parsed" (parse model))
+                _ = Debug.log "Compiled" (compile stmts)
             in
-                ()
+                ( model, Cmd.none )
+        Send -> ( model, Cmd.none )
+        Recv code -> ( Debug.log "Model" code, Cmd.none )
 
 view : Model -> Html Msg
 view model =
@@ -68,7 +59,7 @@ view model =
                     [ select [ style "margin-right" "1em" ] 
                         [ option [] [ text "Examples" ]
                         ]
-                    , button [ onClick Click ] [ text "Run" ]
+                    , button [ onClick Run ] [ text "Run" ]
                     ]
                 , span []
                     [ text "Export as: "
