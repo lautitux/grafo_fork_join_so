@@ -5310,105 +5310,78 @@ var $author$project$Main$messageReceiver = _Platform_incomingPort('messageReceiv
 var $author$project$Main$subscriptions = function (_v0) {
 	return $author$project$Main$messageReceiver($author$project$Main$Recv);
 };
-var $author$project$Compiler$Continue = function (a) {
-	return {$: 'Continue', a: a};
-};
-var $author$project$Compiler$End = function (a) {
-	return {$: 'End', a: a};
-};
-var $author$project$Compiler$Error = function (a) {
-	return {$: 'Error', a: a};
-};
-var $author$project$Compiler$Merge = F2(
-	function (a, b) {
-		return {$: 'Merge', a: a, b: b};
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
 	});
-var $author$project$Compiler$Value = function (a) {
-	return {$: 'Value', a: a};
+var $author$project$Compiler$advance = function (state) {
+	return _Utils_update(
+		state,
+		{
+			current: A2($elm$core$List$drop, 1, state.current),
+			i: state.i + 1
+		});
 };
+var $elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3($elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$Set$foldl = F3(
+	function (func, initialState, _v0) {
+		var dict = _v0.a;
+		return A3(
+			$elm$core$Dict$foldl,
+			F3(
+				function (key, _v1, state) {
+					return A2(func, key, state);
+				}),
+			initialState,
+			dict);
+	});
 var $elm$core$Set$Set_elm_builtin = function (a) {
 	return {$: 'Set_elm_builtin', a: a};
 };
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
-var $elm$core$Basics$compare = _Utils_compare;
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
-var $author$project$Parse$Label = function (a) {
-	return {$: 'Label', a: a};
-};
-var $author$project$Util$dropWhile = F2(
-	function (p, ls) {
-		dropWhile:
-		while (true) {
-			if (!ls.b) {
-				return _List_Nil;
-			} else {
-				var x = ls.a;
-				var xs = ls.b;
-				if (p(x)) {
-					var $temp$p = p,
-						$temp$ls = xs;
-					p = $temp$p;
-					ls = $temp$ls;
-					continue dropWhile;
-				} else {
-					return ls;
-				}
-			}
-		}
-	});
-var $elm$core$Basics$neq = _Utils_notEqual;
-var $author$project$Compiler$goto = F2(
-	function (state, lbl) {
-		var _v0 = A2(
-			$author$project$Util$dropWhile,
-			function (s) {
-				return !_Utils_eq(
-					s.value,
-					$author$project$Parse$Label(lbl));
-			},
-			state.source);
-		if (!_v0.b) {
-			return $elm$core$Result$Err('Failed to find label \'' + (lbl + '\'.'));
-		} else {
-			var stmts = _v0;
-			return $elm$core$Result$Ok(
-				_Utils_update(
-					state,
-					{current: stmts}));
-		}
-	});
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
@@ -5469,6 +5442,7 @@ var $elm$core$Dict$balance = F5(
 			}
 		}
 	});
+var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$insertHelp = F3(
 	function (key, value, dict) {
 		if (dict.$ === 'RBEmpty_elm_builtin') {
@@ -5523,100 +5497,119 @@ var $elm$core$Set$insert = F2(
 		return $elm$core$Set$Set_elm_builtin(
 			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
 	});
-var $author$project$Parse$Located = F3(
-	function (start, value, end) {
-		return {end: end, start: start, value: value};
-	});
-var $author$project$Compiler$locate = F2(
-	function (ref, val) {
-		return A3($author$project$Parse$Located, ref.start, val, ref.end);
-	});
-var $elm$core$Debug$log = _Debug_log;
-var $elm$core$Dict$foldl = F3(
-	function (func, acc, dict) {
-		foldl:
+var $elm$core$Set$fromList = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$Set$insert, $elm$core$Set$empty, list);
+};
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
 		while (true) {
 			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return acc;
+				return $elm$core$Maybe$Nothing;
 			} else {
 				var key = dict.b;
 				var value = dict.c;
 				var left = dict.d;
 				var right = dict.e;
-				var $temp$func = func,
-					$temp$acc = A3(
-					func,
-					key,
-					value,
-					A3($elm$core$Dict$foldl, func, acc, left)),
-					$temp$dict = right;
-				func = $temp$func;
-				acc = $temp$acc;
-				dict = $temp$dict;
-				continue foldl;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
 			}
 		}
 	});
-var $elm$core$Dict$merge = F6(
-	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
-		var stepState = F3(
-			function (rKey, rValue, _v0) {
-				stepState:
+var $author$project$Parse$Label = function (a) {
+	return {$: 'Label', a: a};
+};
+var $author$project$Util$dropWhile = F2(
+	function (p, list) {
+		var loop = F2(
+			function (ls, i) {
+				loop:
 				while (true) {
-					var list = _v0.a;
-					var result = _v0.b;
-					if (!list.b) {
-						return _Utils_Tuple2(
-							list,
-							A3(rightStep, rKey, rValue, result));
+					if (!ls.b) {
+						return _Utils_Tuple2(_List_Nil, i);
 					} else {
-						var _v2 = list.a;
-						var lKey = _v2.a;
-						var lValue = _v2.b;
-						var rest = list.b;
-						if (_Utils_cmp(lKey, rKey) < 0) {
-							var $temp$rKey = rKey,
-								$temp$rValue = rValue,
-								$temp$_v0 = _Utils_Tuple2(
-								rest,
-								A3(leftStep, lKey, lValue, result));
-							rKey = $temp$rKey;
-							rValue = $temp$rValue;
-							_v0 = $temp$_v0;
-							continue stepState;
+						var x = ls.a;
+						var xs = ls.b;
+						if (p(x)) {
+							var $temp$ls = xs,
+								$temp$i = i + 1;
+							ls = $temp$ls;
+							i = $temp$i;
+							continue loop;
 						} else {
-							if (_Utils_cmp(lKey, rKey) > 0) {
-								return _Utils_Tuple2(
-									list,
-									A3(rightStep, rKey, rValue, result));
-							} else {
-								return _Utils_Tuple2(
-									rest,
-									A4(bothStep, lKey, lValue, rValue, result));
-							}
+							return _Utils_Tuple2(ls, i);
 						}
 					}
 				}
 			});
-		var _v3 = A3(
-			$elm$core$Dict$foldl,
-			stepState,
-			_Utils_Tuple2(
-				$elm$core$Dict$toList(leftDict),
-				initialResult),
-			rightDict);
-		var leftovers = _v3.a;
-		var intermediateResult = _v3.b;
-		return A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v4, result) {
-					var k = _v4.a;
-					var v = _v4.b;
-					return A3(leftStep, k, v, result);
-				}),
-			intermediateResult,
-			leftovers);
+		return A2(loop, list, 0);
+	});
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $author$project$Compiler$goto = F2(
+	function (state, lbl) {
+		var _v0 = A2(
+			$author$project$Util$dropWhile,
+			function (s) {
+				return !_Utils_eq(
+					s.value,
+					$author$project$Parse$Label(lbl));
+			},
+			state.source);
+		if (!_v0.a.b) {
+			return $elm$core$Result$Err('Failed to find label \'' + (lbl + '\'.'));
+		} else {
+			var stmts = _v0.a;
+			var i = _v0.b;
+			return $elm$core$Result$Ok(
+				_Utils_update(
+					state,
+					{current: stmts, i: i}));
+		}
+	});
+var $author$project$Parse$Located = F3(
+	function (start, value, end) {
+		return {end: end, start: start, value: value};
+	});
+var $author$project$Compiler$located = F2(
+	function (loc, val) {
+		return A3($author$project$Parse$Located, loc.start, val, loc.end);
+	});
+var $elm$core$Result$map = F2(
+	function (func, ra) {
+		if (ra.$ === 'Ok') {
+			var a = ra.a;
+			return $elm$core$Result$Ok(
+				func(a));
+		} else {
+			var e = ra.a;
+			return $elm$core$Result$Err(e);
+		}
+	});
+var $elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return $elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return $elm$core$Result$Err(
+				f(e));
+		}
 	});
 var $elm$core$Dict$union = F2(
 	function (t1, t2) {
@@ -5629,225 +5622,192 @@ var $elm$core$Set$union = F2(
 		return $elm$core$Set$Set_elm_builtin(
 			A2($elm$core$Dict$union, dict1, dict2));
 	});
-var $author$project$Compiler$merge = F2(
-	function (state1, state2) {
-		var keep = F3(
-			function (comparable, v, dict) {
-				return A3($elm$core$Dict$insert, comparable, v, dict);
-			});
-		return {
-			counters: A2($elm$core$Dict$union, state2.counters, state1.counters),
-			current: state1.current,
-			graph: A6(
-				$elm$core$Dict$merge,
-				keep,
-				F4(
-					function (parent, a, b, dict) {
-						return A3(
-							$elm$core$Dict$insert,
-							parent,
-							A2($elm$core$Set$union, a, b),
-							dict);
-					}),
-				keep,
-				state1.graph,
-				state2.graph,
-				$elm$core$Dict$empty),
-			source: state1.source
-		};
-	});
-var $author$project$Compiler$unreachable = function (s) {
-	return A3(
-		$author$project$Parse$Located,
-		_Utils_Tuple2(0, 0),
-		'Unreachable ' + (s + '.'),
-		_Utils_Tuple2(0, 0));
-};
 var $author$project$Compiler$compileStatements = F2(
-	function (parent, step) {
+	function (parents, result) {
 		compileStatements:
 		while (true) {
-			switch (step.$) {
-				case 'Merge':
-					var state1 = step.a;
-					var merge_step = step.b;
-					switch (merge_step.$) {
-						case 'End':
-							var state2 = merge_step.a;
-							var $temp$parent = parent,
-								$temp$step = $author$project$Compiler$Continue(
-								A2($author$project$Compiler$merge, state1, state2));
-							parent = $temp$parent;
-							step = $temp$step;
-							continue compileStatements;
-						case 'Error':
-							return merge_step;
-						default:
-							var _v2 = A2($elm$core$Debug$log, 'Merge Step', merge_step);
-							return $author$project$Compiler$Error(
-								$author$project$Compiler$unreachable('Merge'));
-					}
-				case 'Continue':
-					var state = step.a;
-					var _v3 = state.current;
-					if (!_v3.b) {
-						return $author$project$Compiler$End(state);
-					} else {
-						var stmt = _v3.a;
-						var rest = _v3.b;
-						return A2(
-							$author$project$Compiler$compileStatements,
-							parent,
-							function () {
-								var _v4 = stmt.value;
-								switch (_v4.$) {
-									case 'Label':
-										return $author$project$Compiler$Continue(
-											_Utils_update(
-												state,
-												{current: rest}));
-									case 'Counter':
-										var counter = _v4.a;
-										var value = _v4.b;
-										var _v5 = A2($elm$core$Dict$get, counter, state.counters);
-										if (_v5.$ === 'Nothing') {
-											return $author$project$Compiler$Continue(
+			if (result.$ === 'Err') {
+				return result;
+			} else {
+				var state = result.a;
+				var _v1 = state.current;
+				if (!_v1.b) {
+					return result;
+				} else {
+					var stmt = _v1.a;
+					var _v2 = stmt.value;
+					switch (_v2.$) {
+						case 'Label':
+							return A2(
+								$author$project$Compiler$compileStatements,
+								parents,
+								$elm$core$Result$Ok(
+									$author$project$Compiler$advance(state)));
+						case 'Counter':
+							var ident = _v2.a;
+							var value = _v2.b;
+							return A2(
+								$author$project$Compiler$compileStatements,
+								parents,
+								function () {
+									var _v3 = A2($elm$core$Dict$get, ident, state.counters);
+									if (_v3.$ === 'Nothing') {
+										return $elm$core$Result$Ok(
+											$author$project$Compiler$advance(
 												_Utils_update(
 													state,
 													{
-														counters: A3(
-															$elm$core$Dict$insert,
-															counter,
-															$author$project$Compiler$Value(
-																A2($author$project$Compiler$locate, stmt, value)),
-															state.counters),
-														current: rest
-													}));
-										} else {
-											return $author$project$Compiler$Error(
-												A2($author$project$Compiler$locate, stmt, 'Cannot re-assign to already assigned counter \'' + (counter + '\'.')));
-										}
-									case 'Fork':
-										var lbl = _v4.a;
-										var _v6 = A2($author$project$Compiler$goto, state, lbl);
-										if (_v6.$ === 'Ok') {
-											var goto_state = _v6.a;
-											return A2(
-												$author$project$Compiler$Merge,
-												_Utils_update(
-													state,
-													{current: rest}),
-												A2(
-													$author$project$Compiler$compileStatements,
-													parent,
-													$author$project$Compiler$Continue(goto_state)));
-										} else {
-											var msg = _v6.a;
-											return $author$project$Compiler$Error(
-												A2($author$project$Compiler$locate, stmt, msg));
-										}
-									case 'Goto':
-										var lbl = _v4.a;
-										var _v7 = A2($author$project$Compiler$goto, state, lbl);
-										if (_v7.$ === 'Ok') {
-											var goto_state = _v7.a;
-											return $author$project$Compiler$Continue(goto_state);
-										} else {
-											var msg = _v7.a;
-											return $author$project$Compiler$Error(
-												A2($author$project$Compiler$locate, stmt, msg));
-										}
-									case 'Join':
-										var counter = _v4.a;
-										var lbl = _v4.b;
-										var _v8 = A2($elm$core$Dict$get, counter, state.counters);
-										if (_v8.$ === 'Nothing') {
-											return $author$project$Compiler$Error(
-												A2($author$project$Compiler$locate, stmt, 'Cannot join on non-existing counter \'' + (counter + '\'.')));
-										} else {
-											if (_v8.a.$ === 'Value') {
-												var count = _v8.a.a;
-												var _v9 = A2($author$project$Compiler$goto, state, lbl);
-												if (_v9.$ === 'Ok') {
-													var goto_state = _v9.a;
-													return $author$project$Compiler$Continue(
-														_Utils_update(
-															goto_state,
-															{
-																counters: A3(
-																	$elm$core$Dict$insert,
-																	counter,
-																	$author$project$Compiler$Value(
-																		A2($author$project$Compiler$locate, count, count.value - 1)),
-																	state.counters)
-															}));
-												} else {
-													var msg = _v9.a;
-													return $author$project$Compiler$Error(
-														A2($author$project$Compiler$locate, stmt, msg));
-												}
-											} else {
-												var error = _v8.a.a;
-												return $author$project$Compiler$Error(error);
-											}
-										}
-									case 'Quit':
-										return $author$project$Compiler$End(state);
-									default:
-										var name = _v4.a;
-										return A2(
-											$author$project$Compiler$compileStatements,
-											name,
-											$author$project$Compiler$Continue(
-												_Utils_update(
-													state,
-													{
-														current: rest,
-														graph: function () {
-															var _v10 = A2($elm$core$Dict$get, parent, state.graph);
-															if (_v10.$ === 'Nothing') {
-																return A3(
-																	$elm$core$Dict$insert,
-																	parent,
-																	A2($elm$core$Set$insert, name, $elm$core$Set$empty),
-																	state.graph);
-															} else {
-																var other = _v10.a;
-																return A3(
-																	$elm$core$Dict$insert,
-																	parent,
-																	A2($elm$core$Set$insert, name, other),
-																	state.graph);
-															}
-														}()
+														counters: A3($elm$core$Dict$insert, ident, value, state.counters)
 													})));
+									} else {
+										return $elm$core$Result$Err(
+											A2($author$project$Compiler$located, stmt, 'Invalid re-assignment of already assigned counter \'' + (ident + '\'.')));
+									}
+								}());
+						case 'Fork':
+							var lbl = _v2.a;
+							return A2(
+								$author$project$Compiler$compileStatements,
+								parents,
+								function () {
+									var _v4 = A2($author$project$Compiler$goto, state, lbl);
+									if (_v4.$ === 'Ok') {
+										var goto_state = _v4.a;
+										var new_state = $author$project$Compiler$advance(state);
+										var goto_result = A2(
+											$author$project$Compiler$compileStatements,
+											parents,
+											$elm$core$Result$Ok(goto_state));
+										return A2(
+											$elm$core$Result$map,
+											function (s) {
+												return _Utils_update(
+													s,
+													{current: new_state.current, i: new_state.i});
+											},
+											goto_result);
+									} else {
+										var msg = _v4.a;
+										return $elm$core$Result$Err(
+											A2($author$project$Compiler$located, stmt, msg));
+									}
+								}());
+						case 'Goto':
+							var lbl = _v2.a;
+							var $temp$parents = parents,
+								$temp$result = A2(
+								$elm$core$Result$mapError,
+								$author$project$Compiler$located(stmt),
+								A2($author$project$Compiler$goto, state, lbl));
+							parents = $temp$parents;
+							result = $temp$result;
+							continue compileStatements;
+						case 'Join':
+							var ident = _v2.a;
+							var lbl = _v2.b;
+							var _v5 = A2($elm$core$Dict$get, ident, state.counters);
+							if (_v5.$ === 'Nothing') {
+								return $elm$core$Result$Err(
+									A2($author$project$Compiler$located, stmt, 'Attempted join on non-existing counter \'' + (ident + '\'.')));
+							} else {
+								var value = _v5.a;
+								var new_state = $author$project$Compiler$advance(
+									_Utils_update(
+										state,
+										{
+											counters: A3($elm$core$Dict$insert, ident, value - 1, state.counters)
+										}));
+								var join_parents = function () {
+									var _v6 = A2($elm$core$Dict$get, state.i, state.joins);
+									if (_v6.$ === 'Nothing') {
+										return parents;
+									} else {
+										var others = _v6.a;
+										return A2($elm$core$Set$union, parents, others);
+									}
+								}();
+								if (value === 1) {
+									var $temp$parents = join_parents,
+										$temp$result = A2(
+										$elm$core$Result$mapError,
+										$author$project$Compiler$located(stmt),
+										A2($author$project$Compiler$goto, new_state, lbl));
+									parents = $temp$parents;
+									result = $temp$result;
+									continue compileStatements;
+								} else {
+									var $temp$parents = parents,
+										$temp$result = $elm$core$Result$Ok(
+										_Utils_update(
+											new_state,
+											{
+												joins: A3($elm$core$Dict$insert, state.i, join_parents, state.joins)
+											}));
+									parents = $temp$parents;
+									result = $temp$result;
+									continue compileStatements;
 								}
-							}());
+							}
+						case 'Quit':
+							return $elm$core$Result$Ok(
+								$author$project$Compiler$advance(state));
+						default:
+							var ident = _v2.a;
+							return A2(
+								$author$project$Compiler$compileStatements,
+								$elm$core$Set$fromList(
+									_List_fromArray(
+										[ident])),
+								$elm$core$Result$Ok(
+									$author$project$Compiler$advance(
+										_Utils_update(
+											state,
+											{
+												graph: A3(
+													$elm$core$Set$foldl,
+													F2(
+														function (parent, graph) {
+															var _v7 = A2($elm$core$Dict$get, parent, graph);
+															if (_v7.$ === 'Nothing') {
+																return A3(
+																	$elm$core$Dict$insert,
+																	parent,
+																	$elm$core$Set$fromList(
+																		_List_fromArray(
+																			[ident])),
+																	graph);
+															} else {
+																var children = _v7.a;
+																return A3(
+																	$elm$core$Dict$insert,
+																	parent,
+																	A2($elm$core$Set$insert, ident, children),
+																	graph);
+															}
+														}),
+													state.graph,
+													parents)
+											}))));
 					}
-				default:
-					var otherwise = step;
-					return otherwise;
+				}
 			}
 		}
 	});
 var $author$project$Compiler$compile = function (stmts) {
-	var _v0 = A2(
-		$author$project$Compiler$compileStatements,
-		'',
-		$author$project$Compiler$Continue(
-			{counters: $elm$core$Dict$empty, current: stmts, graph: $elm$core$Dict$empty, source: stmts}));
-	switch (_v0.$) {
-		case 'End':
-			var state = _v0.a;
-			return $elm$core$Result$Ok(state.graph);
-		case 'Error':
-			var err = _v0.a;
-			return $elm$core$Result$Err(err);
-		default:
-			return $elm$core$Result$Err(
-				$author$project$Compiler$unreachable('Compile'));
-	}
+	var state = {counters: $elm$core$Dict$empty, current: stmts, graph: $elm$core$Dict$empty, i: 0, joins: $elm$core$Dict$empty, source: stmts};
+	return A2(
+		$elm$core$Result$map,
+		function (s) {
+			return s.graph;
+		},
+		A2(
+			$author$project$Compiler$compileStatements,
+			$elm$core$Set$fromList(
+				_List_fromArray(
+					[''])),
+			$elm$core$Result$Ok(state)));
 };
+var $elm$core$Debug$log = _Debug_log;
 var $elm$parser$Parser$DeadEnd = F3(
 	function (row, col, problem) {
 		return {col: col, problem: problem, row: row};
