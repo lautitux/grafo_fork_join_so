@@ -1,26 +1,3 @@
-.tk {
-  display: inline-block;
-  font-family: "Courier New", Courier, monospace;
-  font-size: medium;
-  padding: 0.1em 0.5em;
-  margin: 0.2em;
-  border-radius: 0.3em;
-  border: 1px solid black;
-}
-
-.error {
-  display: block;
-  font-family: "Courier New", Courier, monospace;
-  margin-top: 1em;
-
-  .line {
-    margin-right: 1em;
-    background-color: #ffb4b4;
-    padding: 0.2em;
-    border-radius: 0.3em;
-  }
-}
-
 * {
   --gray: #979797;
   --text: #24292e;
@@ -29,6 +6,8 @@
   --btn-bg-hover: #f3f4f6;
   --btn-bg-active: #edeff2;
   --body-bg: white;
+  --error-bg: #ffb2b2;
+  --error-fg: #333333;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,7 +18,9 @@
     --btn-bg: #14161a; /* Inverted from #FAFBFC */
     --btn-bg-hover: #0c0d0e; /* Inverted from #F3F4F6 */
     --btn-bg-active: #131216; /* Inverted from #EDEFF2 */
-    --body-bg: #1C1E22;
+    --body-bg: #1c1e22;
+    --error-bg: #a60000;
+    --error-fg: #e0e0e0;
   }
 }
 
@@ -82,7 +63,7 @@ select:active {
 
 main {
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: 1fr 1fr;
   margin-top: 1em;
   border: solid 1px #979797;
 }
@@ -99,6 +80,39 @@ main {
 #graph {
   min-height: 45rem;
   border-left: solid 1px #979797;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.message {
+  width: 100%;
+  align-self: flex-end;
+  padding: 0 1em;
+  padding-bottom: 1em;
+}
+
+#error {
+  background-color: var(--error-bg);
+  color: var(--error-fg);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+#svg-modal {
+  background-color: var(--body-bg);
+  color: var(--text);
+  border: 1px solid var(--text);
+  width: 70%;
+  padding: 1em;
+}
+
+#svg-output {
+  background-color: inherit;
+  color: inherit;
+  max-width: 95%;
+  width: 95%;
+  min-width: 95%;
+  height: 400px;
 }
 
 @media (max-width: 992px) {
