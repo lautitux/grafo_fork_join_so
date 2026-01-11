@@ -11,6 +11,8 @@ import Json.Encode as E
 import Dict
 import Set
 import Parse exposing (Located)
+import Parser exposing (Problem(..))
+import Util exposing (deadEndToLocatedString)
 
 main =
     Browser.element
@@ -60,10 +62,13 @@ update msg model =
             in
                 case parse model.code of  
                     Ok stmts -> 
-                        case Result.map serialize (compile stmts) of
+                        case Result.map serialize (Debug.log "Compiled" <| compile stmts) of
                             Ok graph -> ( { model | error = Nothing }, renderGraph graph )
                             Err err -> ( { model | error = Just err, svg = Nothing }, Cmd.none )
-                    Err deadEnds -> ( model, Cmd.none )
+                    Err deadEnds -> 
+                        case deadEnds of
+                            [] -> ( model, Cmd.none )
+                            deadEnd :: _ -> ( { model | error = Just (deadEndToLocatedString deadEnd), svg = Nothing }, Cmd.none )
         ExportAs format -> ( model, exportAs format )
         Update code -> ( Debug.log "Model" { model | code = code }, Cmd.none )
         LoadSvg svg -> ( { model | svg = Just svg }, Cmd.none )
@@ -90,7 +95,7 @@ view model =
             [ div [ id "editor" ][]
             , div [ id "graph" ] <|
                 case model.svg of
-                    Just svg -> [ img [ src svg, alt "Graph Image" ] [] ]
+                    Just svg -> [ img [ id "graph-img", src svg, alt "Graph Image" ] [] ]
                     Nothing -> 
                         case model.error of
                             Just err ->

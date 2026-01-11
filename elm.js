@@ -5819,6 +5819,47 @@ var $author$project$Compiler$compile = function (stmts) {
 					[''])),
 			$elm$core$Result$Ok(state)));
 };
+var $elm$core$Debug$log = _Debug_log;
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$Util$deadEndToLocatedString = function (deadEnd) {
+	return {
+		end: _Utils_Tuple2(deadEnd.row, deadEnd.col),
+		start: _Utils_Tuple2(deadEnd.row, deadEnd.col),
+		value: function () {
+			var _v0 = A2($elm$core$Debug$log, 'DeadEnd', deadEnd.problem);
+			switch (_v0.$) {
+				case 'Expecting':
+					var str = _v0.a;
+					return 'Expected \'' + (str + '\'.');
+				case 'ExpectingInt':
+					return 'Expected an integer.';
+				case 'ExpectingVariable':
+					return 'Expected an identifier.';
+				case 'ExpectingKeyword':
+					var kwd = _v0.a;
+					return 'Expected keyword \'' + (kwd + '\'.');
+				case 'ExpectingEnd':
+					return 'Expected end of script.';
+				case 'ExpectingSymbol':
+					var sym = _v0.a;
+					return 'Expected \'' + (A3($elm$core$String$replace, '\n', '\\n', sym) + '\'.');
+				case 'UnexpectedChar':
+					return 'Unexpected character.';
+				case 'Problem':
+					var problem = _v0.a;
+					return problem;
+				default:
+					return '[UNREACHABLE]';
+			}
+		}()
+	};
+};
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Main$exportAs = _Platform_outgoingPort('exportAs', $elm$json$Json$Encode$string);
 var $elm$json$Json$Encode$list = F2(
@@ -5830,7 +5871,6 @@ var $elm$json$Json$Encode$list = F2(
 				_Json_emptyArray(_Utils_Tuple0),
 				entries));
 	});
-var $elm$core$Debug$log = _Debug_log;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -6805,9 +6845,9 @@ var $author$project$Main$update = F2(
 					return $elm$json$Json$Encode$object(
 						A2(
 							$elm$core$List$map,
-							function (_v3) {
-								var a = _v3.a;
-								var b = _v3.b;
+							function (_v4) {
+								var a = _v4.a;
+								var b = _v4.b;
 								return _Utils_Tuple2(
 									a,
 									A2(
@@ -6823,7 +6863,10 @@ var $author$project$Main$update = F2(
 					var _v2 = A2(
 						$elm$core$Result$map,
 						serialize,
-						$author$project$Compiler$compile(stmts));
+						A2(
+							$elm$core$Debug$log,
+							'Compiled',
+							$author$project$Compiler$compile(stmts)));
 					if (_v2.$ === 'Ok') {
 						var graph = _v2.a;
 						return _Utils_Tuple2(
@@ -6844,7 +6887,20 @@ var $author$project$Main$update = F2(
 					}
 				} else {
 					var deadEnds = _v1.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					if (!deadEnds.b) {
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					} else {
+						var deadEnd = deadEnds.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									error: $elm$core$Maybe$Just(
+										$author$project$Util$deadEndToLocatedString(deadEnd)),
+									svg: $elm$core$Maybe$Nothing
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
 				}
 			case 'ExportAs':
 				var format = msg.a;
@@ -7062,6 +7118,7 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$img,
 										_List_fromArray(
 											[
+												$elm$html$Html$Attributes$id('graph-img'),
 												$elm$html$Html$Attributes$src(svg),
 												$elm$html$Html$Attributes$alt('Graph Image')
 											]),

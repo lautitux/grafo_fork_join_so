@@ -33,14 +33,14 @@ function graphToMermaidJS(graph, direction = "TD") {
   };
 
   for (const [parent, children] of Object.entries(graph)) {
-    if (parent !== "") {
-      const parentNode = formatNode(parent);
-      const childString = children.map((v) => formatNode(v)).join(" & ");
-      if (childString) {
-        lines.push(`\t${parentNode} --> ${childString}`);
-      } else {
-        lines.push(`\t${parentNode}`);
-      }
+    const childString = children.map((v) => formatNode(v)).join(" & ");
+    const parentNode = formatNode(parent);
+    if (childString && parent) {
+      lines.push(`\t${parentNode} --> ${childString}`);
+    } else if (childString && !parent) {
+      lines.push(childString)
+    } else {
+      lines.push(`\t${parentNode}`);
     }
   }
 
