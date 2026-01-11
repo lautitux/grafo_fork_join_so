@@ -6282,7 +6282,7 @@ var $author$project$Parse$spacesOrNewLine = $elm$parser$Parser$chompWhile(
 			c,
 			_Utils_chr('\t')) || (_Utils_eq(
 			c,
-			_Utils_chr('\r')) || _Utils_eq(
+			_Utils_chr('\u000D')) || _Utils_eq(
 			c,
 			_Utils_chr('\n'))));
 	});
@@ -6406,7 +6406,7 @@ var $author$project$Parse$spaces = $elm$parser$Parser$chompWhile(
 			c,
 			_Utils_chr('\t')) || _Utils_eq(
 			c,
-			_Utils_chr('\r')));
+			_Utils_chr('\u000D')));
 	});
 var $elm$parser$Parser$Advanced$succeed = function (a) {
 	return $elm$parser$Parser$Advanced$Parser(

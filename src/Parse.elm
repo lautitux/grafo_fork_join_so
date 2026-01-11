@@ -1,6 +1,9 @@
-module Parse exposing (Statement(..), Located, parse)
+module Parse exposing (Located, Statement(..), parse)
+
 import Parser exposing (..)
 import Set
+
+
 
 -- statement ::= (<labeled_statement> | <unlabeled_statement>) <EOL>
 -- labeled_statement ::= <label> | <label> <unlabeled_statement>
@@ -12,10 +15,10 @@ import Set
 -- unary ::= ("FORK" | "GOTO") " " <IDENTIFIER>
 -- binary ::= "JOIN" " " <IDENTIFIER> "," <IDENTIFIER>
 -- process ::= <IDENTIFIER>
-
 -- IDENTIFIER ::= [a-zA-Z_][a-zA-Z0-9_]*
 -- INTEGER ::= [0-9]+
 -- EOL ::= "\n"
+
 
 type Statement
     = Label String
@@ -26,151 +29,178 @@ type Statement
     | Quit
     | Process String
 
+
 type alias Located a =
-  { start : (Int, Int)
-  , value : a
-  , end : (Int, Int)
-  }
+    { start : ( Int, Int )
+    , value : a
+    , end : ( Int, Int )
+    }
+
 
 located : Parser a -> Parser (Located a)
 located parser =
-  succeed Located
-    |= getPosition
-    |= parser
-    |= getPosition
+    succeed Located
+        |= getPosition
+        |= parser
+        |= getPosition
+
 
 spaces : Parser ()
 spaces =
-  chompWhile (\c -> c == ' ' || c == '\t' || c == '\r')
+    chompWhile (\c -> c == ' ' || c == '\t' || c == '\u{000D}')
+
 
 spacesOrNewLine : Parser ()
 spacesOrNewLine =
-  chompWhile (\c -> c == ' ' || c == '\t' || c == '\r' || c == '\n')
+    chompWhile (\c -> c == ' ' || c == '\t' || c == '\u{000D}' || c == '\n')
+
 
 identifier : Parser String
 identifier =
-    variable 
+    variable
         { start = \c -> Char.isAlpha c || c == '_'
         , inner = \c -> Char.isAlphaNum c || c == '_'
         , reserved = Set.empty
         }
 
+
 label : Parser Statement
-label = 
+label =
     succeed Label
-    |= identifier
-    |. spaces
-    |. symbol ":"
+        |= identifier
+        |. spaces
+        |. symbol ":"
+
 
 counter : Parser Statement
 counter =
     succeed Counter
-    |= backtrackable identifier
-    |. backtrackable spaces
-    |. symbol "="
-    |. spaces
-    |= int
+        |= backtrackable identifier
+        |. backtrackable spaces
+        |. symbol "="
+        |. spaces
+        |= int
+
 
 unary : String -> (String -> Statement) -> Parser Statement
 unary s map =
     succeed map
-    |. keyword s
-    |. spaces
-    |= identifier
+        |. keyword s
+        |. spaces
+        |= identifier
+
 
 binary : String -> (String -> String -> Statement) -> Parser Statement
 binary s map =
     succeed map
-    |. keyword s
-    |. spaces
-    |= identifier
-    |. spaces
-    |. symbol ","
-    |. spaces
-    |= identifier
+        |. keyword s
+        |. spaces
+        |= identifier
+        |. spaces
+        |. symbol ","
+        |. spaces
+        |= identifier
+
 
 fork : Parser Statement
-fork = unary "FORK" Fork
+fork =
+    unary "FORK" Fork
+
 
 goto : Parser Statement
-goto = unary "GOTO" Goto
+goto =
+    unary "GOTO" Goto
+
 
 join : Parser Statement
-join = binary "JOIN" Join
+join =
+    binary "JOIN" Join
+
 
 quit : Parser Statement
-quit = 
+quit =
     succeed Quit
-    |. keyword "QUIT"
+        |. keyword "QUIT"
+
 
 application : Parser Statement
 application =
-    oneOf 
-    [ quit
-    , fork
-    , goto
-    , join
-    ]
+    oneOf
+        [ quit
+        , fork
+        , goto
+        , join
+        ]
+
 
 process : Parser Statement
-process = 
+process =
     succeed Process
-    |= identifier
+        |= identifier
+
 
 unlabeled_statement : Parser Statement
 unlabeled_statement =
-    oneOf 
-    [
-        counter,
-        application,
-        process
-    ]
-
-labeled_statement : Parser (Located Statement, Maybe (Located Statement))
-labeled_statement =
-    succeed (\lbl stmt -> (lbl, stmt))
-    |= backtrackable (located label)
-    |= oneOf
-        [ succeed Just
-          |. backtrackable spaces
-          |= located unlabeled_statement
-        , succeed Nothing
+    oneOf
+        [ counter
+        , application
+        , process
         ]
 
-statement : Parser (Located Statement, Maybe (Located Statement))
+
+labeled_statement : Parser ( Located Statement, Maybe (Located Statement) )
+labeled_statement =
+    succeed (\lbl stmt -> ( lbl, stmt ))
+        |= backtrackable (located label)
+        |= oneOf
+            [ succeed Just
+                |. backtrackable spaces
+                |= located unlabeled_statement
+            , succeed Nothing
+            ]
+
+
+statement : Parser ( Located Statement, Maybe (Located Statement) )
 statement =
     succeed identity
-    |= oneOf 
-        [  labeled_statement
-        , map (\stmt -> (stmt, Nothing)) (located unlabeled_statement)
-        ]
-    |. oneOf 
-        [ symbol "\n"
-        , end
-        ]
+        |= oneOf
+            [ labeled_statement
+            , map (\stmt -> ( stmt, Nothing )) (located unlabeled_statement)
+            ]
+        |. oneOf
+            [ symbol "\n"
+            , end
+            ]
+
 
 statements : Parser (List (Located Statement))
 statements =
-  loop [] statementsHelp
+    loop [] statementsHelp
+
 
 statementsHelp : List (Located Statement) -> Parser (Step (List (Located Statement)) (List (Located Statement)))
 statementsHelp stmts =
-  oneOf
-    [ succeed (
-        \(lbl, maybe_stmt) -> 
-            case maybe_stmt of
-                Just stmt -> Loop (stmt :: lbl :: stmts)
-                Nothing -> Loop (lbl :: stmts)
-      )
-        |= statement
-        |. spacesOrNewLine
-    , succeed (Loop stmts)
-        |. lineComment ";"
-        |. spacesOrNewLine
-    , succeed ()
-        |. end
-        |> map (\_ -> Done (List.reverse stmts))
-    ]
+    oneOf
+        [ succeed
+            (\( lbl, maybe_stmt ) ->
+                case maybe_stmt of
+                    Just stmt ->
+                        Loop (stmt :: lbl :: stmts)
+
+                    Nothing ->
+                        Loop (lbl :: stmts)
+            )
+            |= statement
+            |. spacesOrNewLine
+        , succeed (Loop stmts)
+            |. lineComment ";"
+            |. spacesOrNewLine
+        , succeed ()
+            |. end
+            |> map (\_ -> Done (List.reverse stmts))
+        ]
+
 
 parse : String -> Result (List DeadEnd) (List (Located Statement))
-parse = run statements
+parse =
+    run statements

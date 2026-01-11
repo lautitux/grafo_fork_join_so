@@ -1,27 +1,26 @@
 port module Main exposing (main)
 
 import Browser
+import Compiler exposing (compile)
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Parse exposing (parse)
-import Platform.Cmd as Cmd
-import Compiler exposing (compile)
 import Json.Encode as E
-import Dict
-import Set
-import Parse exposing (Located)
+import Parse exposing (Located, parse)
 import Parser exposing (Problem(..))
+import Platform.Cmd as Cmd
+import Set
 import Util exposing (deadEndToLocatedString)
+
 
 main =
     Browser.element
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    }
-
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
 
 
 type alias Model =
@@ -32,55 +31,80 @@ type alias Model =
 
 
 init : () -> ( Model, Cmd Msg )
-init _ = ( { code = "", svg = Nothing, error = Nothing } , Cmd.none )
+init _ =
+    ( { code = "", svg = Nothing, error = Nothing }, Cmd.none )
 
 
-type Msg 
+type Msg
     = Run
     | ExportAs String
     | Update String
     | LoadSvg String
 
+
 port renderGraph : E.Value -> Cmd msg
+
+
 port exportAs : String -> Cmd msg
+
+
 port editorUpdate : (String -> msg) -> Sub msg
+
+
 port loadSVG : (String -> msg) -> Sub msg
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch 
-    [ editorUpdate Update
-    , loadSVG LoadSvg
-    ]
+    Sub.batch
+        [ editorUpdate Update
+        , loadSVG LoadSvg
+        ]
 
-update : Msg -> Model ->  ( Model, Cmd Msg )
-update msg model = 
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         Run ->
             let
-                serialize graph = E.object <| List.map (\(a, b) -> (a , E.list E.string (Set.toList b))) (Dict.toList graph)
+                serialize graph =
+                    E.object <| List.map (\( a, b ) -> ( a, E.list E.string (Set.toList b) )) (Dict.toList graph)
             in
-                case parse model.code of  
-                    Ok stmts -> 
-                        case Result.map serialize (Debug.log "Compiled" <| compile stmts) of
-                            Ok graph -> ( { model | error = Nothing }, renderGraph graph )
-                            Err err -> ( { model | error = Just err, svg = Nothing }, Cmd.none )
-                    Err deadEnds -> 
-                        case deadEnds of
-                            [] -> ( model, Cmd.none )
-                            deadEnd :: _ -> ( { model | error = Just (deadEndToLocatedString deadEnd), svg = Nothing }, Cmd.none )
-        ExportAs format -> ( model, exportAs format )
-        Update code -> ( Debug.log "Model" { model | code = code }, Cmd.none )
-        LoadSvg svg -> ( { model | svg = Just svg }, Cmd.none )
+            case parse model.code of
+                Ok stmts ->
+                    case Result.map serialize (Debug.log "Compiled" <| compile stmts) of
+                        Ok graph ->
+                            ( { model | error = Nothing }, renderGraph graph )
+
+                        Err err ->
+                            ( { model | error = Just err, svg = Nothing }, Cmd.none )
+
+                Err deadEnds ->
+                    case deadEnds of
+                        [] ->
+                            ( model, Cmd.none )
+
+                        deadEnd :: _ ->
+                            ( { model | error = Just (deadEndToLocatedString deadEnd), svg = Nothing }, Cmd.none )
+
+        ExportAs format ->
+            ( model, exportAs format )
+
+        Update code ->
+            ( Debug.log "Model" { model | code = code }, Cmd.none )
+
+        LoadSvg svg ->
+            ( { model | svg = Just svg }, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
     div [ id "container" ]
-        [ div [ id "top-bar" ] 
+        [ div [ id "top-bar" ]
             [ h1 [] [ text "Fork & Join" ]
             , div [ id "controls" ]
                 [ span []
-                    [ select [ style "margin-right" "1em" ] 
+                    [ select [ style "margin-right" "1em" ]
                         [ option [] [ text "Examples" ]
                         ]
                     , button [ onClick Run ] [ text "Run" ]
@@ -91,23 +115,25 @@ view model =
                     ]
                 ]
             ]
-        , main_ [] 
-            [ div [ id "editor" ][]
+        , main_ []
+            [ div [ id "editor" ] []
             , div [ id "graph" ] <|
                 case model.svg of
-                    Just svg -> [ img [ id "graph-img", src svg, alt "Graph Image" ] [] ]
-                    Nothing -> 
+                    Just svg ->
+                        [ img [ id "graph-img", src svg, alt "Graph Image" ] [] ]
+
+                    Nothing ->
                         case model.error of
                             Just err ->
-                                [ div [id "error", class "message"] 
-                                    [ p [] 
-                                        [ strong [] 
-                                            [ text 
-                                                ( "Error [" 
-                                                 ++ String.fromInt (Tuple.first err.start) 
-                                                 ++ ":" 
-                                                 ++ String.fromInt (Tuple.second err.start) 
-                                                 ++ "]"
+                                [ div [ id "error", class "message" ]
+                                    [ p []
+                                        [ strong []
+                                            [ text
+                                                ("Error ["
+                                                    ++ String.fromInt (Tuple.first err.start)
+                                                    ++ ":"
+                                                    ++ String.fromInt (Tuple.second err.start)
+                                                    ++ "]"
                                                 )
                                             ]
                                         , br [] []
@@ -115,12 +141,14 @@ view model =
                                         ]
                                     ]
                                 ]
-                            Nothing -> []
+
+                            Nothing ->
+                                []
             ]
-        , footer [] 
-            [ p [ style "text-align" "center" ] 
+        , footer []
+            [ p [ style "text-align" "center" ]
                 [ text "Created by "
-                , a [ href "https://github.com/lautitux" ] 
+                , a [ href "https://github.com/lautitux" ]
                     [ text "Lautaro Montes" ]
                 , text " in 2025"
                 ]
