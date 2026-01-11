@@ -5351,6 +5351,16 @@ var $author$project$Compiler$advance = function (state) {
 			i: state.i + 1
 		});
 };
+var $elm$core$Result$andThen = F2(
+	function (callback, result) {
+		if (result.$ === 'Ok') {
+			var value = result.a;
+			return callback(value);
+		} else {
+			var msg = result.a;
+			return $elm$core$Result$Err(msg);
+		}
+	});
 var $elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
 		foldl:
@@ -5635,172 +5645,156 @@ var $elm$core$Set$union = F2(
 			A2($elm$core$Dict$union, dict1, dict2));
 	});
 var $author$project$Compiler$compileStatements = F2(
-	function (parents, result) {
+	function (parents, state) {
 		compileStatements:
 		while (true) {
-			if (result.$ === 'Err') {
-				return result;
+			var _v0 = state.current;
+			if (!_v0.b) {
+				return $elm$core$Result$Ok(state);
 			} else {
-				var state = result.a;
-				var _v1 = state.current;
-				if (!_v1.b) {
-					return result;
-				} else {
-					var stmt = _v1.a;
-					var _v2 = stmt.value;
-					switch (_v2.$) {
-						case 'Label':
-							return A2(
-								$author$project$Compiler$compileStatements,
-								parents,
-								$elm$core$Result$Ok(
-									$author$project$Compiler$advance(state)));
-						case 'Counter':
-							var ident = _v2.a;
-							var value = _v2.b;
-							return A2(
-								$author$project$Compiler$compileStatements,
-								parents,
-								function () {
-									var _v3 = A2($elm$core$Dict$get, ident, state.counters);
-									if (_v3.$ === 'Nothing') {
-										return $elm$core$Result$Ok(
-											$author$project$Compiler$advance(
-												_Utils_update(
-													state,
-													{
-														counters: A3($elm$core$Dict$insert, ident, value, state.counters)
-													})));
-									} else {
-										return $elm$core$Result$Err(
-											A2($author$project$Compiler$located, stmt, 'Invalid re-assignment of already assigned counter \'' + (ident + '\'.')));
-									}
-								}());
-						case 'Fork':
-							var lbl = _v2.a;
-							return A2(
-								$author$project$Compiler$compileStatements,
-								parents,
-								function () {
-									var _v4 = A2($author$project$Compiler$goto, state, lbl);
-									if (_v4.$ === 'Ok') {
-										var goto_state = _v4.a;
-										var new_state = $author$project$Compiler$advance(state);
-										var goto_result = A2(
-											$author$project$Compiler$compileStatements,
-											parents,
-											$elm$core$Result$Ok(goto_state));
-										return A2(
-											$elm$core$Result$map,
-											function (s) {
-												return _Utils_update(
-													s,
-													{current: new_state.current, i: new_state.i});
-											},
-											goto_result);
-									} else {
-										var msg = _v4.a;
-										return $elm$core$Result$Err(
-											A2($author$project$Compiler$located, stmt, msg));
-									}
-								}());
-						case 'Goto':
-							var lbl = _v2.a;
+				var stmt = _v0.a;
+				var _v1 = stmt.value;
+				switch (_v1.$) {
+					case 'Label':
+						var $temp$parents = parents,
+							$temp$state = $author$project$Compiler$advance(state);
+						parents = $temp$parents;
+						state = $temp$state;
+						continue compileStatements;
+					case 'Counter':
+						var ident = _v1.a;
+						var value = _v1.b;
+						var _v2 = A2($elm$core$Dict$get, ident, state.counters);
+						if (_v2.$ === 'Nothing') {
 							var $temp$parents = parents,
-								$temp$result = A2(
+								$temp$state = $author$project$Compiler$advance(
+								_Utils_update(
+									state,
+									{
+										counters: A3($elm$core$Dict$insert, ident, value, state.counters)
+									}));
+							parents = $temp$parents;
+							state = $temp$state;
+							continue compileStatements;
+						} else {
+							return $elm$core$Result$Err(
+								A2($author$project$Compiler$located, stmt, 'Invalid re-assignment of already assigned counter \'' + (ident + '\'.')));
+						}
+					case 'Fork':
+						var lbl = _v1.a;
+						var _v3 = A2($author$project$Compiler$goto, state, lbl);
+						if (_v3.$ === 'Ok') {
+							var goto_state = _v3.a;
+							var new_state = $author$project$Compiler$advance(state);
+							var goto_result = A2($author$project$Compiler$compileStatements, parents, goto_state);
+							return A2(
+								$elm$core$Result$andThen,
+								$author$project$Compiler$compileStatements(parents),
+								A2(
+									$elm$core$Result$map,
+									function (s) {
+										return _Utils_update(
+											s,
+											{current: new_state.current, i: new_state.i});
+									},
+									goto_result));
+						} else {
+							var msg = _v3.a;
+							return $elm$core$Result$Err(
+								A2($author$project$Compiler$located, stmt, msg));
+						}
+					case 'Goto':
+						var lbl = _v1.a;
+						return A2(
+							$elm$core$Result$andThen,
+							$author$project$Compiler$compileStatements(parents),
+							A2(
 								$elm$core$Result$mapError,
 								$author$project$Compiler$located(stmt),
-								A2($author$project$Compiler$goto, state, lbl));
-							parents = $temp$parents;
-							result = $temp$result;
-							continue compileStatements;
-						case 'Join':
-							var ident = _v2.a;
-							var lbl = _v2.b;
-							var _v5 = A2($elm$core$Dict$get, ident, state.counters);
-							if (_v5.$ === 'Nothing') {
-								return $elm$core$Result$Err(
-									A2($author$project$Compiler$located, stmt, 'Attempted join on non-existing counter \'' + (ident + '\'.')));
-							} else {
-								var value = _v5.a;
-								var new_state = $author$project$Compiler$advance(
-									_Utils_update(
-										state,
-										{
-											counters: A3($elm$core$Dict$insert, ident, value - 1, state.counters)
-										}));
-								var join_parents = function () {
-									var _v6 = A2($elm$core$Dict$get, state.i, state.joins);
-									if (_v6.$ === 'Nothing') {
-										return parents;
-									} else {
-										var others = _v6.a;
-										return A2($elm$core$Set$union, parents, others);
-									}
-								}();
-								if (value === 1) {
-									var $temp$parents = join_parents,
-										$temp$result = A2(
+								A2($author$project$Compiler$goto, state, lbl)));
+					case 'Join':
+						var ident = _v1.a;
+						var lbl = _v1.b;
+						var _v4 = A2($elm$core$Dict$get, ident, state.counters);
+						if (_v4.$ === 'Nothing') {
+							return $elm$core$Result$Err(
+								A2($author$project$Compiler$located, stmt, 'Attempted join on non-existing counter \'' + (ident + '\'.')));
+						} else {
+							var value = _v4.a;
+							var new_state = $author$project$Compiler$advance(
+								_Utils_update(
+									state,
+									{
+										counters: A3($elm$core$Dict$insert, ident, value - 1, state.counters)
+									}));
+							var join_parents = function () {
+								var _v5 = A2($elm$core$Dict$get, state.i, state.joins);
+								if (_v5.$ === 'Nothing') {
+									return parents;
+								} else {
+									var others = _v5.a;
+									return A2($elm$core$Set$union, parents, others);
+								}
+							}();
+							if (value === 1) {
+								return A2(
+									$elm$core$Result$andThen,
+									$author$project$Compiler$compileStatements(join_parents),
+									A2(
 										$elm$core$Result$mapError,
 										$author$project$Compiler$located(stmt),
-										A2($author$project$Compiler$goto, new_state, lbl));
-									parents = $temp$parents;
-									result = $temp$result;
-									continue compileStatements;
-								} else {
-									var $temp$parents = parents,
-										$temp$result = $elm$core$Result$Ok(
-										_Utils_update(
-											new_state,
-											{
-												joins: A3($elm$core$Dict$insert, state.i, join_parents, state.joins)
-											}));
-									parents = $temp$parents;
-									result = $temp$result;
-									continue compileStatements;
-								}
+										A2($author$project$Compiler$goto, new_state, lbl)));
+							} else {
+								var $temp$parents = parents,
+									$temp$state = _Utils_update(
+									new_state,
+									{
+										joins: A3($elm$core$Dict$insert, state.i, join_parents, state.joins)
+									});
+								parents = $temp$parents;
+								state = $temp$state;
+								continue compileStatements;
 							}
-						case 'Quit':
-							return $elm$core$Result$Ok(
-								$author$project$Compiler$advance(state));
-						default:
-							var ident = _v2.a;
-							return A2(
-								$author$project$Compiler$compileStatements,
-								$elm$core$Set$fromList(
-									_List_fromArray(
-										[ident])),
-								$elm$core$Result$Ok(
-									$author$project$Compiler$advance(
-										_Utils_update(
-											state,
-											{
-												graph: A3(
-													$elm$core$Set$foldl,
-													F2(
-														function (parent, graph) {
-															var _v7 = A2($elm$core$Dict$get, parent, graph);
-															if (_v7.$ === 'Nothing') {
-																return A3(
-																	$elm$core$Dict$insert,
-																	parent,
-																	$elm$core$Set$fromList(
-																		_List_fromArray(
-																			[ident])),
-																	graph);
-															} else {
-																var children = _v7.a;
-																return A3(
-																	$elm$core$Dict$insert,
-																	parent,
-																	A2($elm$core$Set$insert, ident, children),
-																	graph);
-															}
-														}),
-													state.graph,
-													parents)
-											}))));
-					}
+						}
+					case 'Quit':
+						return $elm$core$Result$Ok(
+							$author$project$Compiler$advance(state));
+					default:
+						var ident = _v1.a;
+						return A2(
+							$author$project$Compiler$compileStatements,
+							$elm$core$Set$fromList(
+								_List_fromArray(
+									[ident])),
+							$author$project$Compiler$advance(
+								_Utils_update(
+									state,
+									{
+										graph: A3(
+											$elm$core$Set$foldl,
+											F2(
+												function (parent, graph) {
+													var _v6 = A2($elm$core$Dict$get, parent, graph);
+													if (_v6.$ === 'Nothing') {
+														return A3(
+															$elm$core$Dict$insert,
+															parent,
+															$elm$core$Set$fromList(
+																_List_fromArray(
+																	[ident])),
+															graph);
+													} else {
+														var children = _v6.a;
+														return A3(
+															$elm$core$Dict$insert,
+															parent,
+															A2($elm$core$Set$insert, ident, children),
+															graph);
+													}
+												}),
+											state.graph,
+											parents)
+									})));
 				}
 			}
 		}
@@ -5817,7 +5811,7 @@ var $author$project$Compiler$compile = function (stmts) {
 			$elm$core$Set$fromList(
 				_List_fromArray(
 					[''])),
-			$elm$core$Result$Ok(state)));
+			state));
 };
 var $elm$core$Debug$log = _Debug_log;
 var $elm$core$String$replace = F3(
