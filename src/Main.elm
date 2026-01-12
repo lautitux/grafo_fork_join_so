@@ -2,15 +2,13 @@ port module Main exposing (main)
 
 import Browser
 import Compiler exposing (compile)
-import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Json.Encode as E
+import Mermaid exposing (graphToMermaidJS)
 import Parse exposing (Located, parse)
 import Parser exposing (Problem(..))
 import Platform.Cmd as Cmd
-import Set
 import Util exposing (deadEndToLocatedString)
 
 
@@ -26,39 +24,40 @@ main =
 type alias Model =
     { code : String
     , svg : Maybe String
+    , graph : Maybe String
     , error : Maybe (Located String)
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { code = "", svg = Nothing, error = Nothing }, Cmd.none )
+    ( { code = "", graph = Nothing, svg = Nothing, error = Nothing }, Cmd.none )
 
 
 type Msg
     = Run
-    | ExportAs String
+    | Export String
     | Update String
-    | LoadSvg String
+    | SvgImage String
 
 
-port renderGraph : E.Value -> Cmd msg
+port renderGraph : String -> Cmd msg
 
 
-port exportAs : String -> Cmd msg
+port export : String -> Cmd msg
 
 
 port editorUpdate : (String -> msg) -> Sub msg
 
 
-port loadSVG : (String -> msg) -> Sub msg
+port svgImage : (String -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ editorUpdate Update
-        , loadSVG LoadSvg
+        , svgImage SvgImage
         ]
 
 
@@ -66,18 +65,14 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Run ->
-            let
-                serialize graph =
-                    E.object <| List.map (\( a, b ) -> ( a, E.list E.string (Set.toList b) )) (Dict.toList graph)
-            in
             case parse model.code of
                 Ok stmts ->
-                    case Result.map serialize (Debug.log "Compiled" <| compile stmts) of
+                    case Result.map graphToMermaidJS (Debug.log "Compiled" <| compile stmts) of
                         Ok graph ->
-                            ( { model | error = Nothing }, renderGraph graph )
+                            ( { model | error = Nothing, graph = Just graph }, renderGraph graph )
 
                         Err err ->
-                            ( { model | error = Just err, svg = Nothing }, Cmd.none )
+                            ( { model | error = Just err, svg = Nothing, graph = Nothing }, Cmd.none )
 
                 Err deadEnds ->
                     case deadEnds of
@@ -87,13 +82,13 @@ update msg model =
                         deadEnd :: _ ->
                             ( { model | error = Just (deadEndToLocatedString deadEnd), svg = Nothing }, Cmd.none )
 
-        ExportAs format ->
-            ( model, exportAs format )
+        Export graph ->
+            ( model, export graph )
 
         Update code ->
             ( Debug.log "Model" { model | code = code }, Cmd.none )
 
-        LoadSvg svg ->
+        SvgImage svg ->
             ( { model | svg = Just svg }, Cmd.none )
 
 
@@ -109,9 +104,9 @@ view model =
                         ]
                     , button [ onClick Run ] [ text "Run" ]
                     ]
-                , span [ hidden (model.svg == Nothing) ]
+                , span [ hidden (model.graph == Nothing) ]
                     [ text "Export as: "
-                    , a [ href "#", onClick (ExportAs "svg") ] [ text "SVG" ]
+                    , a [ href "#", onClick (Export <| Maybe.withDefault "" model.graph) ] [ text "SVG" ]
                     ]
                 ]
             ]

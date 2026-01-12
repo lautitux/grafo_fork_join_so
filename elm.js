@@ -5301,11 +5301,11 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{code: '', error: $elm$core$Maybe$Nothing, svg: $elm$core$Maybe$Nothing},
+		{code: '', error: $elm$core$Maybe$Nothing, graph: $elm$core$Maybe$Nothing, svg: $elm$core$Maybe$Nothing},
 		$elm$core$Platform$Cmd$none);
 };
-var $author$project$Main$LoadSvg = function (a) {
-	return {$: 'LoadSvg', a: a};
+var $author$project$Main$SvgImage = function (a) {
+	return {$: 'SvgImage', a: a};
 };
 var $author$project$Main$Update = function (a) {
 	return {$: 'Update', a: a};
@@ -5313,13 +5313,13 @@ var $author$project$Main$Update = function (a) {
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$editorUpdate = _Platform_incomingPort('editorUpdate', $elm$json$Json$Decode$string);
-var $author$project$Main$loadSVG = _Platform_incomingPort('loadSVG', $elm$json$Json$Decode$string);
+var $author$project$Main$svgImage = _Platform_incomingPort('svgImage', $elm$json$Json$Decode$string);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
 				$author$project$Main$editorUpdate($author$project$Main$Update),
-				$author$project$Main$loadSVG($author$project$Main$LoadSvg)
+				$author$project$Main$svgImage($author$project$Main$SvgImage)
 			]));
 };
 var $elm$core$List$drop = F2(
@@ -5633,6 +5633,15 @@ var $elm$core$Result$mapError = F2(
 				f(e));
 		}
 	});
+var $elm$core$Dict$member = F2(
+	function (key, dict) {
+		var _v0 = A2($elm$core$Dict$get, key, dict);
+		if (_v0.$ === 'Just') {
+			return true;
+		} else {
+			return false;
+		}
+	});
 var $elm$core$Dict$union = F2(
 	function (t1, t2) {
 		return A3($elm$core$Dict$foldl, $elm$core$Dict$insert, t2, t1);
@@ -5664,8 +5673,10 @@ var $author$project$Compiler$compileStatements = F2(
 					case 'Counter':
 						var ident = _v1.a;
 						var value = _v1.b;
-						var _v2 = A2($elm$core$Dict$get, ident, state.counters);
-						if (_v2.$ === 'Nothing') {
+						if (A2($elm$core$Dict$member, ident, state.counters)) {
+							return $elm$core$Result$Err(
+								A2($author$project$Compiler$located, stmt, 'Invalid re-assignment of already assigned counter \'' + (ident + '\'.')));
+						} else {
 							var $temp$parents = parents,
 								$temp$state = $author$project$Compiler$advance(
 								_Utils_update(
@@ -5676,15 +5687,12 @@ var $author$project$Compiler$compileStatements = F2(
 							parents = $temp$parents;
 							state = $temp$state;
 							continue compileStatements;
-						} else {
-							return $elm$core$Result$Err(
-								A2($author$project$Compiler$located, stmt, 'Invalid re-assignment of already assigned counter \'' + (ident + '\'.')));
 						}
 					case 'Fork':
 						var lbl = _v1.a;
-						var _v3 = A2($author$project$Compiler$goto, state, lbl);
-						if (_v3.$ === 'Ok') {
-							var goto_state = _v3.a;
+						var _v2 = A2($author$project$Compiler$goto, state, lbl);
+						if (_v2.$ === 'Ok') {
+							var goto_state = _v2.a;
 							var new_state = $author$project$Compiler$advance(state);
 							var goto_result = A2($author$project$Compiler$compileStatements, parents, goto_state);
 							return A2(
@@ -5699,7 +5707,7 @@ var $author$project$Compiler$compileStatements = F2(
 									},
 									goto_result));
 						} else {
-							var msg = _v3.a;
+							var msg = _v2.a;
 							return $elm$core$Result$Err(
 								A2($author$project$Compiler$located, stmt, msg));
 						}
@@ -5715,12 +5723,12 @@ var $author$project$Compiler$compileStatements = F2(
 					case 'Join':
 						var ident = _v1.a;
 						var lbl = _v1.b;
-						var _v4 = A2($elm$core$Dict$get, ident, state.counters);
-						if (_v4.$ === 'Nothing') {
+						var _v3 = A2($elm$core$Dict$get, ident, state.counters);
+						if (_v3.$ === 'Nothing') {
 							return $elm$core$Result$Err(
 								A2($author$project$Compiler$located, stmt, 'Attempted join on non-existing counter \'' + (ident + '\'.')));
 						} else {
-							var value = _v4.a;
+							var value = _v3.a;
 							var new_state = $author$project$Compiler$advance(
 								_Utils_update(
 									state,
@@ -5728,11 +5736,11 @@ var $author$project$Compiler$compileStatements = F2(
 										counters: A3($elm$core$Dict$insert, ident, value - 1, state.counters)
 									}));
 							var join_parents = function () {
-								var _v5 = A2($elm$core$Dict$get, state.i, state.joins);
-								if (_v5.$ === 'Nothing') {
+								var _v4 = A2($elm$core$Dict$get, state.i, state.joins);
+								if (_v4.$ === 'Nothing') {
 									return parents;
 								} else {
-									var others = _v5.a;
+									var others = _v4.a;
 									return A2($elm$core$Set$union, parents, others);
 								}
 							}();
@@ -5774,8 +5782,8 @@ var $author$project$Compiler$compileStatements = F2(
 											$elm$core$Set$foldl,
 											F2(
 												function (parent, graph) {
-													var _v6 = A2($elm$core$Dict$get, parent, graph);
-													if (_v6.$ === 'Nothing') {
+													var _v5 = A2($elm$core$Dict$get, parent, graph);
+													if (_v5.$ === 'Nothing') {
 														return A3(
 															$elm$core$Dict$insert,
 															parent,
@@ -5784,7 +5792,7 @@ var $author$project$Compiler$compileStatements = F2(
 																	[ident])),
 															graph);
 													} else {
-														var children = _v6.a;
+														var children = _v5.a;
 														return A3(
 															$elm$core$Dict$insert,
 															parent,
@@ -5855,28 +5863,46 @@ var $author$project$Util$deadEndToLocatedString = function (deadEnd) {
 	};
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$exportAs = _Platform_outgoingPort('exportAs', $elm$json$Json$Encode$string);
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
+var $author$project$Main$export = _Platform_outgoingPort('export', $elm$json$Json$Encode$string);
+var $elm$core$Dict$map = F2(
+	function (func, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return $elm$core$Dict$RBEmpty_elm_builtin;
+		} else {
+			var color = dict.a;
+			var key = dict.b;
+			var value = dict.c;
+			var left = dict.d;
+			var right = dict.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				color,
+				key,
+				A2(func, key, value),
+				A2($elm$core$Dict$map, func, left),
+				A2($elm$core$Dict$map, func, right));
+		}
 	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
+var $elm$core$Basics$not = _Basics_not;
+var $author$project$Mermaid$graphToMermaidJS = function (graph) {
+	var format = F3(
+		function (k, v, acc) {
+			return ($elm$core$String$isEmpty(k) && (!$elm$core$String$isEmpty(v))) ? (acc + ('\t' + (v + '\n'))) : ($elm$core$String$isEmpty(v) ? (acc + ('\t' + (k + '\n'))) : (acc + ('\t' + (k + (' --> ' + (v + '\n'))))));
+		});
+	return A3(
+		$elm$core$Dict$foldl,
+		format,
+		'graph TD\n',
+		A2(
+			$elm$core$Dict$map,
 			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
+				function (_v0, v) {
+					return A2(
+						$elm$core$String$join,
+						' & ',
+						$elm$core$Set$toList(v));
 				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
+			graph));
 };
 var $elm$parser$Parser$DeadEnd = F3(
 	function (row, col, problem) {
@@ -6139,7 +6165,6 @@ var $elm$parser$Parser$Advanced$isSubString = _Parser_isSubString;
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
-var $elm$core$Basics$not = _Basics_not;
 var $elm$parser$Parser$Advanced$token = function (_v0) {
 	var str = _v0.a;
 	var expecting = _v0.b;
@@ -6303,15 +6328,6 @@ var $elm$parser$Parser$Advanced$backtrackable = function (_v0) {
 };
 var $elm$parser$Parser$backtrackable = $elm$parser$Parser$Advanced$backtrackable;
 var $elm$parser$Parser$ExpectingVariable = {$: 'ExpectingVariable'};
-var $elm$core$Dict$member = F2(
-	function (key, dict) {
-		var _v0 = A2($elm$core$Dict$get, key, dict);
-		if (_v0.$ === 'Just') {
-			return true;
-		} else {
-			return false;
-		}
-	});
 var $elm$core$Set$member = F2(
 	function (key, _v0) {
 		var dict = _v0.a;
@@ -6830,33 +6846,17 @@ var $author$project$Parse$statementsHelp = function (stmts) {
 };
 var $author$project$Parse$statements = A2($elm$parser$Parser$loop, _List_Nil, $author$project$Parse$statementsHelp);
 var $author$project$Parse$parse = $elm$parser$Parser$run($author$project$Parse$statements);
-var $author$project$Main$renderGraph = _Platform_outgoingPort('renderGraph', $elm$core$Basics$identity);
+var $author$project$Main$renderGraph = _Platform_outgoingPort('renderGraph', $elm$json$Json$Encode$string);
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'Run':
-				var serialize = function (graph) {
-					return $elm$json$Json$Encode$object(
-						A2(
-							$elm$core$List$map,
-							function (_v4) {
-								var a = _v4.a;
-								var b = _v4.b;
-								return _Utils_Tuple2(
-									a,
-									A2(
-										$elm$json$Json$Encode$list,
-										$elm$json$Json$Encode$string,
-										$elm$core$Set$toList(b)));
-							},
-							$elm$core$Dict$toList(graph)));
-				};
 				var _v1 = $author$project$Parse$parse(model.code);
 				if (_v1.$ === 'Ok') {
 					var stmts = _v1.a;
 					var _v2 = A2(
 						$elm$core$Result$map,
-						serialize,
+						$author$project$Mermaid$graphToMermaidJS,
 						A2(
 							$elm$core$Debug$log,
 							'Compiled',
@@ -6866,7 +6866,10 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{error: $elm$core$Maybe$Nothing}),
+								{
+									error: $elm$core$Maybe$Nothing,
+									graph: $elm$core$Maybe$Just(graph)
+								}),
 							$author$project$Main$renderGraph(graph));
 					} else {
 						var err = _v2.a;
@@ -6875,6 +6878,7 @@ var $author$project$Main$update = F2(
 								model,
 								{
 									error: $elm$core$Maybe$Just(err),
+									graph: $elm$core$Maybe$Nothing,
 									svg: $elm$core$Maybe$Nothing
 								}),
 							$elm$core$Platform$Cmd$none);
@@ -6896,11 +6900,11 @@ var $author$project$Main$update = F2(
 							$elm$core$Platform$Cmd$none);
 					}
 				}
-			case 'ExportAs':
-				var format = msg.a;
+			case 'Export':
+				var graph = msg.a;
 				return _Utils_Tuple2(
 					model,
-					$author$project$Main$exportAs(format));
+					$author$project$Main$export(graph));
 			case 'Update':
 				var code = msg.a;
 				return _Utils_Tuple2(
@@ -6922,8 +6926,8 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Main$ExportAs = function (a) {
-	return {$: 'ExportAs', a: a};
+var $author$project$Main$Export = function (a) {
+	return {$: 'Export', a: a};
 };
 var $author$project$Main$Run = {$: 'Run'};
 var $elm$html$Html$a = _VirtualDom_node('a');
@@ -6995,6 +6999,15 @@ var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -7064,7 +7077,7 @@ var $author$project$Main$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$hidden(
-										_Utils_eq(model.svg, $elm$core$Maybe$Nothing))
+										_Utils_eq(model.graph, $elm$core$Maybe$Nothing))
 									]),
 								_List_fromArray(
 									[
@@ -7075,7 +7088,8 @@ var $author$project$Main$view = function (model) {
 											[
 												$elm$html$Html$Attributes$href('#'),
 												$elm$html$Html$Events$onClick(
-												$author$project$Main$ExportAs('svg'))
+												$author$project$Main$Export(
+													A2($elm$core$Maybe$withDefault, '', model.graph)))
 											]),
 										_List_fromArray(
 											[

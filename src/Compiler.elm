@@ -1,4 +1,4 @@
-module Compiler exposing (compile)
+module Compiler exposing (Graph, compile)
 
 import Dict exposing (Dict)
 import Html.Attributes exposing (value)
@@ -7,13 +7,17 @@ import Set exposing (Set)
 import Util
 
 
+type alias Graph =
+    Dict String (Set String)
+
+
 type alias State =
     { source : List (Located Statement)
     , current : List (Located Statement)
     , i : Int
     , counters : Dict String Int
     , joins : Dict Int (Set String)
-    , graph : Dict String (Set String)
+    , graph : Graph
     }
 
 
@@ -49,12 +53,11 @@ compileStatements parents state =
                     compileStatements parents (advance state)
 
                 Counter ident value ->
-                    case Dict.get ident state.counters of
-                        Nothing ->
-                            compileStatements parents (advance { state | counters = Dict.insert ident value state.counters })
+                    if Dict.member ident state.counters then
+                        Err <| located stmt ("Invalid re-assignment of already assigned counter '" ++ ident ++ "'.")
 
-                        Just _ ->
-                            Err <| located stmt ("Invalid re-assignment of already assigned counter '" ++ ident ++ "'.")
+                    else
+                        compileStatements parents (advance { state | counters = Dict.insert ident value state.counters })
 
                 Fork lbl ->
                     case goto state lbl of
@@ -121,7 +124,7 @@ compileStatements parents state =
                             }
 
 
-compile : List (Located Statement) -> Result (Located String) (Dict String (Set String))
+compile : List (Located Statement) -> Result (Located String) Graph
 compile stmts =
     let
         state =

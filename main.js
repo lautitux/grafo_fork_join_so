@@ -20,56 +20,21 @@ if (darkMode) {
 
 mermaid.initialize({ theme: mermaidTheme });
 
-function graphToMermaidJS(graph, direction = "TD") {
-  const lines = [`graph ${direction}`];
-  const nodeIdMap = new Map();
-  let nextId = 0;
-
-  const formatNode = (name) => {
-    if (!nodeIdMap.has(name)) {
-      nodeIdMap.set(name, nextId++);
-    }
-    return `${nodeIdMap.get(name)}["${name}"]`;
-  };
-
-  for (const [parent, children] of Object.entries(graph)) {
-    const childString = children.map((v) => formatNode(v)).join(" & ");
-    const parentNode = formatNode(parent);
-    if (childString && parent) {
-      lines.push(`\t${parentNode} --> ${childString}`);
-    } else if (childString && !parent) {
-      lines.push(childString)
-    } else {
-      lines.push(`\t${parentNode}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-let graphCode = "";
-
-app.ports.renderGraph.subscribe((message) => {
-  graphCode = graphToMermaidJS(message);
-  mermaid.render("graph-svg", graphCode).then(({ svg }) => {
-    app.ports.loadSVG.send(`data:image/svg+xml;base64,${window.btoa(svg)}`);
+app.ports.renderGraph.subscribe((graph) => {
+  mermaid.render("graph-svg", graph).then(({ svg }) => {
+    app.ports.svgImage.send(`data:image/svg+xml;base64,${window.btoa(svg)}`);
   });
 });
 
-app.ports.exportAs.subscribe((message) => {
-  if (!graphCode) return;
+app.ports.export.subscribe((graph) => {
   mermaid.initialize({ theme: "neutral" });
-  if (message === "svg") {
-    mermaid.render("graph-svg", graphCode).then(({ svg }) => {
-      const modal = document.getElementById("svg-modal");
-      const output = document.getElementById("svg-output");
-      output.innerText = svg;
-      modal.showModal();
-      output.focus();
-    });
-  } else {
-    console.error("Unsupported format.");
-  }
+  mermaid.render("graph-svg", graph).then(({ svg }) => {
+    const modal = document.getElementById("svg-modal");
+    const output = document.getElementById("svg-output");
+    output.innerText = svg;
+    modal.showModal();
+    output.focus();
+  });
   mermaid.initialize({ theme: mermaidTheme });
 });
 
