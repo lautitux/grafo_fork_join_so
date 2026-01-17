@@ -5,17 +5,19 @@ import Set
 
 
 
--- statement ::= (<labeled_statement> | <unlabeled_statement>) <EOL>
--- labeled_statement ::= <label> | <label> <unlabeled_statement>
+-- Grammar
+-- statement ::= (<SPACE> | <EOL>)* (<labeled_statement> | <unlabeled_statement>) <SPACE>* <EOL>
+-- labeled_statement ::= <label> [<SPACE>* <unlabeled_statement>]
 -- unlabeled_statement ::= <counter> | <application> | <process>
 -- label ::= <IDENTIFIER> ":"
--- counter ::= <IDENTIFIER> "=" <INTEGER>
+-- counter ::= <IDENTIFIER> <SPACE>* "=" <SPACE>* <INTEGER>
 -- application ::= <nullary> | <unary> | <binary>
 -- nullary ::= "QUIT"
--- unary ::= ("FORK" | "GOTO") " " <IDENTIFIER>
--- binary ::= "JOIN" " " <IDENTIFIER> "," <IDENTIFIER>
+-- unary ::= ("FORK" | "GOTO") <SPACE>+ <IDENTIFIER>
+-- binary ::= "JOIN" <SPACE>+ <IDENTIFIER> <SPACE>* "," <SPACE>* <IDENTIFIER>
 -- process ::= <IDENTIFIER>
 -- IDENTIFIER ::= [a-zA-Z_][a-zA-Z0-9_]*
+-- SPACE ::= (" " | "\t" | "\r")
 -- INTEGER ::= [0-9]+
 -- EOL ::= "\n"
 
@@ -45,6 +47,15 @@ located parser =
         |= getPosition
 
 
+space : Parser ()
+space =
+    oneOf
+        [ symbol " "
+        , symbol "\t"
+        , symbol "\u{000D}"
+        ]
+
+
 spaces : Parser ()
 spaces =
     chompWhile (\c -> c == ' ' || c == '\t' || c == '\u{000D}')
@@ -68,7 +79,6 @@ label : Parser Statement
 label =
     succeed Label
         |= identifier
-        |. spaces
         |. symbol ":"
 
 
@@ -86,6 +96,7 @@ unary : String -> (String -> Statement) -> Parser Statement
 unary s map =
     succeed map
         |. keyword s
+        |. space
         |. spaces
         |= identifier
 
@@ -94,6 +105,7 @@ binary : String -> (String -> String -> Statement) -> Parser Statement
 binary s map =
     succeed map
         |. keyword s
+        |. space
         |. spaces
         |= identifier
         |. spaces
@@ -163,12 +175,15 @@ labeled_statement =
 statement : Parser ( Located Statement, Maybe (Located Statement) )
 statement =
     succeed identity
+        |. spacesOrNewLine
         |= oneOf
             [ labeled_statement
             , map (\stmt -> ( stmt, Nothing )) (located unlabeled_statement)
             ]
+        |. spaces
         |. oneOf
             [ symbol "\n"
+            , lineComment ";"
             , end
             ]
 
@@ -194,7 +209,6 @@ statementsHelp stmts =
             |. spacesOrNewLine
         , succeed (Loop stmts)
             |. lineComment ";"
-            |. spacesOrNewLine
         , succeed ()
             |. end
             |> map (\_ -> Done (List.reverse stmts))

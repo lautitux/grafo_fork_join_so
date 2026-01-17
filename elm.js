@@ -6414,16 +6414,6 @@ var $author$project$Parse$identifier = $elm$parser$Parser$variable(
 				_Utils_chr('_'));
 		}
 	});
-var $author$project$Parse$spaces = $elm$parser$Parser$chompWhile(
-	function (c) {
-		return _Utils_eq(
-			c,
-			_Utils_chr(' ')) || (_Utils_eq(
-			c,
-			_Utils_chr('\t')) || _Utils_eq(
-			c,
-			_Utils_chr('\u000D')));
-	});
 var $elm$parser$Parser$Advanced$succeed = function (a) {
 	return $elm$parser$Parser$Advanced$Parser(
 		function (s) {
@@ -6447,7 +6437,7 @@ var $author$project$Parse$label = A2(
 	$elm$parser$Parser$succeed($author$project$Parse$Label),
 	A2(
 		$elm$parser$Parser$ignorer,
-		A2($elm$parser$Parser$ignorer, $author$project$Parse$identifier, $author$project$Parse$spaces),
+		$author$project$Parse$identifier,
 		$elm$parser$Parser$symbol(':')));
 var $elm$parser$Parser$Advanced$getPosition = $elm$parser$Parser$Advanced$Parser(
 	function (s) {
@@ -6470,6 +6460,16 @@ var $author$project$Parse$located = function (parser) {
 			parser),
 		$elm$parser$Parser$getPosition);
 };
+var $author$project$Parse$spaces = $elm$parser$Parser$chompWhile(
+	function (c) {
+		return _Utils_eq(
+			c,
+			_Utils_chr(' ')) || (_Utils_eq(
+			c,
+			_Utils_chr('\t')) || _Utils_eq(
+			c,
+			_Utils_chr('\u000D')));
+	});
 var $author$project$Parse$Fork = function (a) {
 	return {$: 'Fork', a: a};
 };
@@ -6511,6 +6511,13 @@ var $elm$parser$Parser$keyword = function (kwd) {
 			kwd,
 			$elm$parser$Parser$ExpectingKeyword(kwd)));
 };
+var $author$project$Parse$space = $elm$parser$Parser$oneOf(
+	_List_fromArray(
+		[
+			$elm$parser$Parser$symbol(' '),
+			$elm$parser$Parser$symbol('\t'),
+			$elm$parser$Parser$symbol('\u000D')
+		]));
 var $author$project$Parse$unary = F2(
 	function (s, map) {
 		return A2(
@@ -6519,8 +6526,11 @@ var $author$project$Parse$unary = F2(
 				$elm$parser$Parser$ignorer,
 				A2(
 					$elm$parser$Parser$ignorer,
-					$elm$parser$Parser$succeed(map),
-					$elm$parser$Parser$keyword(s)),
+					A2(
+						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$succeed(map),
+						$elm$parser$Parser$keyword(s)),
+					$author$project$Parse$space),
 				$author$project$Parse$spaces),
 			$author$project$Parse$identifier);
 	});
@@ -6543,8 +6553,11 @@ var $author$project$Parse$binary = F2(
 					$elm$parser$Parser$ignorer,
 					A2(
 						$elm$parser$Parser$ignorer,
-						$elm$parser$Parser$succeed(map),
-						$elm$parser$Parser$keyword(s)),
+						A2(
+							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$succeed(map),
+							$elm$parser$Parser$keyword(s)),
+						$author$project$Parse$space),
 					$author$project$Parse$spaces),
 				A2(
 					$elm$parser$Parser$ignorer,
@@ -6781,24 +6794,31 @@ var $author$project$Parse$labeled_statement = A2(
 			])));
 var $author$project$Parse$statement = A2(
 	$elm$parser$Parser$keeper,
-	$elm$parser$Parser$succeed($elm$core$Basics$identity),
 	A2(
 		$elm$parser$Parser$ignorer,
-		$elm$parser$Parser$oneOf(
-			_List_fromArray(
-				[
-					$author$project$Parse$labeled_statement,
-					A2(
-					$elm$parser$Parser$map,
-					function (stmt) {
-						return _Utils_Tuple2(stmt, $elm$core$Maybe$Nothing);
-					},
-					$author$project$Parse$located($author$project$Parse$unlabeled_statement))
-				])),
+		$elm$parser$Parser$succeed($elm$core$Basics$identity),
+		$author$project$Parse$spacesOrNewLine),
+	A2(
+		$elm$parser$Parser$ignorer,
+		A2(
+			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$oneOf(
+				_List_fromArray(
+					[
+						$author$project$Parse$labeled_statement,
+						A2(
+						$elm$parser$Parser$map,
+						function (stmt) {
+							return _Utils_Tuple2(stmt, $elm$core$Maybe$Nothing);
+						},
+						$author$project$Parse$located($author$project$Parse$unlabeled_statement))
+					])),
+			$author$project$Parse$spaces),
 		$elm$parser$Parser$oneOf(
 			_List_fromArray(
 				[
 					$elm$parser$Parser$symbol('\n'),
+					$elm$parser$Parser$lineComment(';'),
 					$elm$parser$Parser$end
 				]))));
 var $author$project$Parse$statementsHelp = function (stmts) {
@@ -6826,12 +6846,9 @@ var $author$project$Parse$statementsHelp = function (stmts) {
 				A2($elm$parser$Parser$ignorer, $author$project$Parse$statement, $author$project$Parse$spacesOrNewLine)),
 				A2(
 				$elm$parser$Parser$ignorer,
-				A2(
-					$elm$parser$Parser$ignorer,
-					$elm$parser$Parser$succeed(
-						$elm$parser$Parser$Loop(stmts)),
-					$elm$parser$Parser$lineComment(';')),
-				$author$project$Parse$spacesOrNewLine),
+				$elm$parser$Parser$succeed(
+					$elm$parser$Parser$Loop(stmts)),
+				$elm$parser$Parser$lineComment(';')),
 				A2(
 				$elm$parser$Parser$map,
 				function (_v2) {
