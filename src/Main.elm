@@ -122,7 +122,7 @@ view model =
                     ]
                 , span [ hidden (model.graph == Nothing) ]
                     [ text "Export as: "
-                    , a [ href "#", onClick (Export <| Maybe.withDefault "" model.graph) ] [ text "SVG" ]
+                    , a [ href "#", onClick (Export <| Maybe.withDefault "" model.graph) ] [ text "PNG" ]
                     ]
                 ]
             ]

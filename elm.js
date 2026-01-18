@@ -7208,7 +7208,7 @@ var $author$project$Main$view = function (model) {
 											]),
 										_List_fromArray(
 											[
-												$elm$html$Html$text('SVG')
+												$elm$html$Html$text('PNG')
 											]))
 									]))
 							]))

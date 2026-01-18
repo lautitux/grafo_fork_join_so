@@ -26,15 +26,11 @@ app.ports.renderGraph.subscribe((graph) => {
   });
 });
 
-app.ports.export.subscribe((graph) => {
+app.ports.export.subscribe(async (graph) => {
   mermaid.initialize({ theme: "neutral" });
-  mermaid.render("graph-svg", graph).then(({ svg }) => {
-    const modal = document.getElementById("svg-modal");
-    const output = document.getElementById("svg-output");
-    output.innerText = svg;
-    modal.showModal();
-    output.focus();
-  });
+  const { svg } = await mermaid.render("graph-svg", graph);
+  const pngUrl = await svgStringToPngBase64(svg);
+  window.open(pngUrl, "_blank");
   mermaid.initialize({ theme: mermaidTheme });
 });
 
@@ -45,3 +41,43 @@ app.ports.editorLoadExample.subscribe((example) => {
 editor.session.on("change", () => {
   app.ports.editorUpdate.send(editor.session.getValue());
 });
+
+// Function provided by Google Gemini to convert an SVG into a PNG base 64 url
+async function svgStringToPngBase64(svgString, width = 2048, height = 2048) {
+  return new Promise((resolve, reject) => {
+    // 1. Create a Blob from the SVG string
+    const svgBlob = new Blob([svgString], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      // 2. Prepare the Canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+
+      // Optional: Clear canvas for transparency or set a background color
+      ctx.clearRect(0, 0, width, height);
+
+      // 3. Draw the image
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // 4. Cleanup and Resolve
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(
+        new Error("Failed to render SVG. Ensure the string is valid XML."),
+      );
+    };
+
+    img.src = url;
+  });
+}
