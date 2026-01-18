@@ -26,7 +26,7 @@ deadEndToLocatedString : DeadEnd -> Located String
 deadEndToLocatedString deadEnd =
     { start = ( deadEnd.row, deadEnd.col )
     , value =
-        case Debug.log "DeadEnd" deadEnd.problem of
+        case deadEnd.problem of
             Expecting str ->
                 "Expected '" ++ str ++ "'."
 

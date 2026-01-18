@@ -74,7 +74,7 @@ update msg model =
         Run ->
             case parse model.code of
                 Ok stmts ->
-                    case Result.map graphToMermaidJS (Debug.log "Compiled" <| compile stmts) of
+                    case Result.map graphToMermaidJS (compile stmts) of
                         Ok graph ->
                             ( { model | error = Nothing, graph = Just graph }, renderGraph graph )
 
@@ -93,7 +93,7 @@ update msg model =
             ( model, export graph )
 
         Update code ->
-            ( Debug.log "Model" { model | code = code }, Cmd.none )
+            ( { model | code = code }, Cmd.none )
 
         SvgImage svg ->
             ( { model | svg = Just svg }, Cmd.none )
