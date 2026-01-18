@@ -196,7 +196,11 @@ statements =
 statementsHelp : List (Located Statement) -> Parser (Step (List (Located Statement)) (List (Located Statement)))
 statementsHelp stmts =
     oneOf
-        [ succeed
+        [ succeed (Loop stmts)
+            |. spacesOrNewLine
+            |. lineComment ";"
+            |. spacesOrNewLine
+        , succeed
             (\( lbl, maybe_stmt ) ->
                 case maybe_stmt of
                     Just stmt ->
@@ -207,8 +211,6 @@ statementsHelp stmts =
             )
             |= statement
             |. spacesOrNewLine
-        , succeed (Loop stmts)
-            |. lineComment ";"
         , succeed ()
             |. end
             |> map (\_ -> Done (List.reverse stmts))

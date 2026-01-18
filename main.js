@@ -38,6 +38,10 @@ app.ports.export.subscribe((graph) => {
   mermaid.initialize({ theme: mermaidTheme });
 });
 
+app.ports.editorLoadExample.subscribe((example) => {
+  editor.session.setValue(example);
+});
+
 editor.session.on("change", () => {
   app.ports.editorUpdate.send(editor.session.getValue());
 });

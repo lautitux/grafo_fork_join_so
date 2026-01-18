@@ -5863,6 +5863,27 @@ var $author$project$Util$deadEndToLocatedString = function (deadEnd) {
 	};
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$editorLoadExample = _Platform_outgoingPort('editorLoadExample', $elm$json$Json$Encode$string);
+var $author$project$Examples$examples = _List_fromArray(
+	[
+		_Utils_Tuple2('Basic', 'L1: T1\nFORK L3\nL2: T2\nQUIT\nL3: T3\nT4\n'),
+		_Utils_Tuple2('Medium', 'Count=2\nFORK LD\nA\nFORK JC\nB\nQUIT\nJC: JOIN Count, LC\nQUIT\nLC: C\nQUIT\nLD: D\nGOTO JC'),
+		_Utils_Tuple2('Advanced', 'ContF=2\nContG=3\nFORK LA\nFORK LD\nH\nFORK LJF\nGOTO LJG\nLD: D\nFORK LE\nGOTO LJF\nQUIT\nLE: E\nGOTO LJG\nLA: A\nFORK LC\nB\nQUIT\nLC: C\nLJG: JOIN ContG, LG\nQUIT\nLG: G\nQUIT\nLJF: JOIN ContF, LF\nQUIT\nLF: F'),
+		_Utils_Tuple2('Tutorial', '; =========================================================\n;                  WELCOME TO THE TUTORIAL\n; =========================================================\n; In this language, every line is either a counter,\n; a process (node), a flow control command, or a label.\n\n; 1. DEFINING COUNTERS\n; Counters act as "checks" for joining parallel paths.\n; Here we define a counter that requires 2 paths to complete.\nCounter = 2\n\n; 2. STARTING THE FLOW\n; A word on its own is a node in the graph. It represents a process.\nStart_Tutorial\n\n; 3. CREATING PARALLEL PATHS (FORK)\n; FORK creates a new thread that jumps to a label.\n; The current thread simply moves to the next line.\nFORK Path_B_Label\n\n; 4. THE MAIN PATH (Path A)\n; This is what the first thread does:\nProcess_A\nGOTO Sync_Point ; Now we go wait for the other path.\n\n; 5. THE SECOND PATH (Path B)\n; We define a label followed by the process.\nPath_B_Label:\nProcess_B\n; After Process_B is done, it also heads to the Sync_Point.\nGOTO Sync_Point\n\n; 6. SYNCHRONIZING (JOIN)\n; This is the most important part of graph logic.\n; JOIN checks \'Counter\'.\n; - If it\'s 2: it becomes 1 and this thread stops (QUIT).\n; - If it\'s 1: it jumps to \'Final_Step\'.\nSync_Point:\n    JOIN Counter, Final_Step\n    QUIT ; This ensures the first thread to arrive stops here.\n\n; 7. THE FINAL RESULT\n; Only the last thread to hit the JOIN will reach this label.\nFinal_Step:\n    Tutorial_Complete\n\n; 8. ENDING EXECUTION\n; QUIT stops the current flow.\nQUIT\n\n; 9. Press the [RUN] button to view the rendered graph\n')
+	]);
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $author$project$Examples$examplesDict = $elm$core$Dict$fromList($author$project$Examples$examples);
 var $author$project$Main$export = _Platform_outgoingPort('export', $elm$json$Json$Encode$string);
 var $elm$core$Dict$map = F2(
 	function (func, dict) {
@@ -6826,6 +6847,17 @@ var $author$project$Parse$statementsHelp = function (stmts) {
 		_List_fromArray(
 			[
 				A2(
+				$elm$parser$Parser$ignorer,
+				A2(
+					$elm$parser$Parser$ignorer,
+					A2(
+						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$succeed(
+							$elm$parser$Parser$Loop(stmts)),
+						$author$project$Parse$spacesOrNewLine),
+					$elm$parser$Parser$lineComment(';')),
+				$author$project$Parse$spacesOrNewLine),
+				A2(
 				$elm$parser$Parser$keeper,
 				$elm$parser$Parser$succeed(
 					function (_v0) {
@@ -6844,11 +6876,6 @@ var $author$project$Parse$statementsHelp = function (stmts) {
 						}
 					}),
 				A2($elm$parser$Parser$ignorer, $author$project$Parse$statement, $author$project$Parse$spacesOrNewLine)),
-				A2(
-				$elm$parser$Parser$ignorer,
-				$elm$parser$Parser$succeed(
-					$elm$parser$Parser$Loop(stmts)),
-				$elm$parser$Parser$lineComment(';')),
 				A2(
 				$elm$parser$Parser$map,
 				function (_v2) {
@@ -6932,7 +6959,7 @@ var $author$project$Main$update = F2(
 							model,
 							{code: code})),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'SvgImage':
 				var svg = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6941,10 +6968,24 @@ var $author$project$Main$update = F2(
 							svg: $elm$core$Maybe$Just(svg)
 						}),
 					$elm$core$Platform$Cmd$none);
+			default:
+				var key = msg.a;
+				var _v4 = A2($elm$core$Dict$get, key, $author$project$Examples$examplesDict);
+				if (_v4.$ === 'Just') {
+					var example = _v4.a;
+					return _Utils_Tuple2(
+						model,
+						$author$project$Main$editorLoadExample(example));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$Export = function (a) {
 	return {$: 'Export', a: a};
+};
+var $author$project$Main$LoadExample = function (a) {
+	return {$: 'LoadExample', a: a};
 };
 var $author$project$Main$Run = {$: 'Run'};
 var $elm$html$Html$a = _VirtualDom_node('a');
@@ -6959,9 +7000,6 @@ var $elm$html$Html$Attributes$alt = $elm$html$Html$Attributes$stringProperty('al
 var $elm$html$Html$br = _VirtualDom_node('br');
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$footer = _VirtualDom_node('footer');
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
@@ -6970,6 +7008,11 @@ var $elm$html$Html$Attributes$boolProperty = F2(
 			key,
 			$elm$json$Json$Encode$bool(bool));
 	});
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$footer = _VirtualDom_node('footer');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$Attributes$hidden = $elm$html$Html$Attributes$boolProperty('hidden');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
@@ -6997,13 +7040,47 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
 var $elm$html$Html$option = _VirtualDom_node('option');
 var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$html$Html$pre = _VirtualDom_node('pre');
 var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
 };
 var $elm$html$Html$select = _VirtualDom_node('select');
+var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$html$Html$Attributes$src = function (url) {
 	return A2(
@@ -7016,6 +7093,7 @@ var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Just') {
@@ -7066,18 +7144,38 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$select,
 										_List_fromArray(
 											[
-												A2($elm$html$Html$Attributes$style, 'margin-right', '1em')
+												A2($elm$html$Html$Attributes$style, 'margin-right', '1em'),
+												$elm$html$Html$Events$onInput($author$project$Main$LoadExample)
 											]),
-										_List_fromArray(
-											[
-												A2(
+										A2(
+											$elm$core$List$cons,
+											A2(
 												$elm$html$Html$option,
-												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$selected(true),
+														$elm$html$Html$Attributes$disabled(true)
+													]),
 												_List_fromArray(
 													[
 														$elm$html$Html$text('Examples')
-													]))
-											])),
+													])),
+											A2(
+												$elm$core$List$map,
+												function (_v0) {
+													var name = _v0.a;
+													return A2(
+														$elm$html$Html$option,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$value(name)
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(name)
+															]));
+												},
+												$author$project$Examples$examples))),
 										A2(
 										$elm$html$Html$button,
 										_List_fromArray(
@@ -7134,9 +7232,9 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$Attributes$id('graph')
 							]),
 						function () {
-							var _v0 = model.svg;
-							if (_v0.$ === 'Just') {
-								var svg = _v0.a;
+							var _v1 = model.svg;
+							if (_v1.$ === 'Just') {
+								var svg = _v1.a;
 								return _List_fromArray(
 									[
 										A2(
@@ -7150,9 +7248,9 @@ var $author$project$Main$view = function (model) {
 										_List_Nil)
 									]);
 							} else {
-								var _v1 = model.error;
-								if (_v1.$ === 'Just') {
-									var err = _v1.a;
+								var _v2 = model.error;
+								if (_v2.$ === 'Just') {
+									var err = _v2.a;
 									return _List_fromArray(
 										[
 											A2(
@@ -7190,15 +7288,42 @@ var $author$project$Main$view = function (model) {
 					])),
 				A2(
 				$elm$html$Html$footer,
-				_List_Nil,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+					]),
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$p,
+						$elm$html$Html$h2,
+						_List_Nil,
 						_List_fromArray(
 							[
-								A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+								$elm$html$Html$text('Quick language reference')
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+								A2($elm$html$Html$Attributes$style, 'margin', '0 auto')
 							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$pre,
+								_List_fromArray(
+									[
+										A2($elm$html$Html$Attributes$style, 'text-align', 'start')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('=========================================================\n;          -> Comment\nName = X   -> Counter definition\nFORK L     -> Start new thread at label L\nGOTO L     -> Jump current thread to label L\nJOIN C, L  -> Wait for C threads, then jump to L\nQUIT       -> End current thread\n=========================================================')
+									]))
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
 						_List_fromArray(
 							[
 								$elm$html$Html$text('Created by '),

@@ -2,9 +2,11 @@ port module Main exposing (main)
 
 import Browser
 import Compiler exposing (compile)
+import Dict
+import Examples exposing (examples, examplesDict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import Mermaid exposing (graphToMermaidJS)
 import Parse exposing (Located, parse)
 import Parser exposing (Problem(..))
@@ -12,6 +14,7 @@ import Platform.Cmd as Cmd
 import Util exposing (deadEndToLocatedString)
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -39,12 +42,16 @@ type Msg
     | Export String
     | Update String
     | SvgImage String
+    | LoadExample String
 
 
 port renderGraph : String -> Cmd msg
 
 
 port export : String -> Cmd msg
+
+
+port editorLoadExample : String -> Cmd msg
 
 
 port editorUpdate : (String -> msg) -> Sub msg
@@ -91,6 +98,14 @@ update msg model =
         SvgImage svg ->
             ( { model | svg = Just svg }, Cmd.none )
 
+        LoadExample key ->
+            case Dict.get key examplesDict of
+                Just example ->
+                    ( model, editorLoadExample example )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
@@ -99,9 +114,10 @@ view model =
             [ h1 [] [ text "Fork & Join" ]
             , div [ id "controls" ]
                 [ span []
-                    [ select [ style "margin-right" "1em" ]
-                        [ option [] [ text "Examples" ]
-                        ]
+                    [ select [ style "margin-right" "1em", onInput LoadExample ]
+                        (option [ selected True, disabled True ] [ text "Examples" ]
+                            :: List.map (\( name, _ ) -> option [ value name ] [ text name ]) examples
+                        )
                     , button [ onClick Run ] [ text "Run" ]
                     ]
                 , span [ hidden (model.graph == Nothing) ]
@@ -140,8 +156,21 @@ view model =
                             Nothing ->
                                 []
             ]
-        , footer []
-            [ p [ style "text-align" "center" ]
+        , footer [ style "text-align" "center" ]
+            [ h2 [] [ text "Quick language reference" ]
+            , div [ style "display" "inline-block", style "margin" "0 auto" ]
+                [ pre [ style "text-align" "start" ]
+                    [ text """=========================================================
+;          -> Comment
+Name = X   -> Counter definition
+FORK L     -> Start new thread at label L
+GOTO L     -> Jump current thread to label L
+JOIN C, L  -> Wait for C threads, then jump to L
+QUIT       -> End current thread
+========================================================="""
+                    ]
+                ]
+            , p []
                 [ text "Created by "
                 , a [ href "https://github.com/lautitux" ]
                     [ text "Lautaro Montes" ]
